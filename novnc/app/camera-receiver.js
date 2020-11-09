@@ -8,6 +8,8 @@ var opaqueId = 'camera-receiver-' + Janus.randomString(12);
 var room = 1000;
 var source = null;
 
+var connectClicked = false;
+
 var urlParams = new URLSearchParams(window.location.search);
 var roomParam = urlParams.get('room');
 if (roomParam != null && !isNaN(roomParam)) {
@@ -17,7 +19,14 @@ if (roomParam != null && !isNaN(roomParam)) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-	Janus.init({ debug: false, callback: function() {
+
+	var connectButton = document.getElementById('noVNC_connect_button');
+	connectButton.onclick = function() {
+		connectButton.onclick = null;
+		connectClicked = true;
+	};
+
+	Janus.init({ debug: true, callback: function() {
 		if (!Janus.isWebrtcSupported()) {
 			alert('No WebRTC support... ');
 			return;
@@ -33,11 +42,14 @@ document.addEventListener('DOMContentLoaded', function() {
 						videoroomHandle = pluginHandle;
 						Janus.log('Plugin attached! (' + videoroomHandle.getPlugin() + ', id=' + videoroomHandle.getId() + ')');
 
-						var connectButton = document.getElementById('noVNC_connect_button');
-						connectButton.onclick = function() {
-							connectButton.onclick = null;
+						if (connectClicked) {
 							joinRoom();
-						};
+						} else {
+							connectButton.onclick = function() {
+								connectButton.onclick = null;
+								joinRoom();
+							};
+						}
 					},
 					error: function(error) {
 						Janus.error('Error attaching plugin: ', error);
