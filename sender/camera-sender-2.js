@@ -2,7 +2,8 @@ var server = 'https://' + window.location.hostname + ':8089/janus';
 
 var janus = null;
 var videoroomHandle = null;
-var room = 1000;
+var room = 1006;
+var sendResolution = 'stdres';
 
 var startButton = null;
 var stopButton = null;
@@ -28,13 +29,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 						startButton.onclick = function() {
 							var roomSelect = document.getElementById('room-select');
+							var resSelect = document.getElementById('res-select');
 							startButton.setAttribute('disabled', '');
 							roomSelect.setAttribute('disabled', '');
+							resSelect.setAttribute('disabled', '');
 							stopButton.removeAttribute('disabled');
 							stopButton.onclick = function() {
 								janus.destroy();
 							};
 							room = parseInt(roomSelect.value);
+							sendResolution = resSelect.value;
+							console.log('sendResolution:', sendResolution);
 							shareCamera();
 						};
 						startButton.removeAttribute('disabled');
@@ -103,6 +108,7 @@ function handleMessage(msg, jsep) {
 				videoroomHandle.createOffer({
 					media: {
 						videoSend: true,
+						video: sendResolution,
 						audioSend: false,
 						videoRecv: false
 					},
