@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
 						startButton.onclick = function() {
 							var roomSelect = document.getElementById('room-select');
 							var resSelect = document.getElementById('res-select');
+							var pinInput = document.getElementById('pin-input');
 							startButton.setAttribute('disabled', '');
 							roomSelect.setAttribute('disabled', '');
 							resSelect.setAttribute('disabled', '');
@@ -39,8 +40,9 @@ document.addEventListener('DOMContentLoaded', function() {
 							};
 							room = parseInt(roomSelect.value);
 							sendResolution = resSelect.value;
-							console.log('sendResolution:', sendResolution);
-							shareCamera();
+							Janus.log('sendResolution:', sendResolution);
+							shareCamera(pinInput.value);
+							pinInput.value = '';
 						};
 						startButton.removeAttribute('disabled');
 					},
@@ -93,11 +95,12 @@ document.addEventListener('DOMContentLoaded', function() {
 	}});
 }, false);
 
-function shareCamera() {
+function shareCamera(pin) {
 	var register = {
 		request: 'join',
 		room,
-		ptype: 'publisher'
+		ptype: 'publisher',
+		pin
 	};
 	videoroomHandle.send({ message: register });
 }
@@ -123,7 +126,7 @@ function handleMessage(msg, jsep) {
 	var event = msg['videoroom'];
 	if (event) {
 		if (event === 'joined') {
-			console.log('Joined event:', msg);
+			Janus.log('Joined event:', msg);
 			Janus.log('Successfully joined room ' + msg['room'] + ' with ID ' + msg['id']);
 			if (msg['publishers'].length === 0) {
 				videoroomHandle.createOffer({
@@ -152,7 +155,7 @@ function handleMessage(msg, jsep) {
 			}
 		}
 		if (event === 'event' && msg['error']) {
-			alert(msg['error']);
+			alert('Error message: ' + msg['error'] + '.\nError object: ' + JSON.stringify(msg, null, 2));
 			window.location.reload();
 		}
 	}

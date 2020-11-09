@@ -7,6 +7,9 @@
 		<link rel="stylesheet" href="camera-sender.css">
 	</head>
 	<body>
+		<div>
+			Leave the pin empty if the rooms has none set.
+		</div>
 		<select id="room-select">
 			<option value="1001">VNC 1</option>
 			<option value="1002">VNC 2</option>
@@ -22,10 +25,11 @@
 			<option value="stdres-16:9">640x360</option>
 			<option value="hires-16:9">1280x720</option>
 		</select>
+		<input type="password" id="pin-input" placeholder="Room pin" />
 		<button id="start" disabled>Start</button>
 		<button id="stop" disabled>Stop</button>
 		<form id="bandwidth-form">
-			<label>A bandwidth cap can be set here. 0 or negative means unlimited.</label>
+			<label>A bandwidth cap can be set here. 0 or negative means no cap.</label>
 			<br />
 			<input type="text" id="bandwidth-input" placeholder="New bitrate [in kbit/s]" />
 			<input type="submit" id="bandwidth-submit" value="Change" disabled />
