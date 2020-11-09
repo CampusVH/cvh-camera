@@ -50,6 +50,10 @@ document.addEventListener('DOMContentLoaded', function() {
 					},
 					webrtcState: function(on) {
 						if (on) {
+							var bandwidthForm = document.getElementById('bandwidth-form');
+							var bandwidthSubmit = document.getElementById('bandwidth-submit');
+							bandwidthForm.onsubmit = handleBandwidthFormSubmit;
+							bandwidthSubmit.removeAttribute('disabled', '');
 							alert('Sharing camera');
 						} else {
 							janus.destroy();
@@ -96,6 +100,23 @@ function shareCamera() {
 		ptype: 'publisher'
 	};
 	videoroomHandle.send({ message: register });
+}
+
+function handleBandwidthFormSubmit(event) {
+	event.preventDefault();
+	var bandwidthInput = document.getElementById('bandwidth-input');
+	var bitrateStr = bandwidthInput.value.trim();
+	if (bitrateStr !== '' && !isNaN(bitrateStr) ) {
+		var bitrate = parseInt(bitrateStr) * 1000;
+		if (bitrate < 0) {
+			bandwidth = 0;
+			Janus.log('Negative bitrate input set to 0 (unlimited)');
+		}
+		videoroomHandle.send({ message: { request: 'configure', bitrate }});
+		bandwidthInput.value = '';
+	} else {
+		alert('Invalid value for bitrate');
+	}
 }
 
 function handleMessage(msg, jsep) {

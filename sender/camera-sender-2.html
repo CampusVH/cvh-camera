@@ -24,6 +24,12 @@
 		</select>
 		<button id="start" disabled>Start</button>
 		<button id="stop" disabled>Stop</button>
+		<form id="bandwidth-form">
+			<label>A bandwidth cap can be set here. 0 or negative means unlimited.</label>
+			<br />
+			<input type="text" id="bandwidth-input" placeholder="New bitrate [in kbit/s]" />
+			<input type="submit" id="bandwidth-submit" value="Change" disabled />
+		</form>
 		<div id="preview-container"></div>
 	</body>
 </html>
