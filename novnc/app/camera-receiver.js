@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', function() {
 
 	var server = 'https://' + window.location.hostname + ':8089/janus';
