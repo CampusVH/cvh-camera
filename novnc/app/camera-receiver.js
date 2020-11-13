@@ -111,18 +111,18 @@ document.addEventListener('DOMContentLoaded', function() {
 			opaqueId,
 			success: function(pluginHandle) {
 				remoteFeedHandle = pluginHandle;
-				Janus.log('Plugin attached (listener)! (' + remoteFeedHandle.getPlugin() + ', id=' + remoteFeedHandle.getId() + ')');
+				Janus.log('Plugin attached (subscriber)! (' + remoteFeedHandle.getPlugin() + ', id=' + remoteFeedHandle.getId() + ')');
 				var listen = {
 					request: 'join',
 					room,
-					ptype: 'listener',
+					ptype: 'subscriber',
 					feed: id,
 					pin
 				};
 				remoteFeedHandle.send({ message: listen });
 			},
 			error: function(error) {
-				Janus.error('Error attaching plugin (listener): ', error);
+				Janus.error('Error attaching plugin (subscriber): ', error);
 				alert(error);
 			},
 			onmessage: handleMessageListener,
