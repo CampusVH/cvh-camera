@@ -2314,6 +2314,11 @@ function Janus(gatewayCallbacks) {
 							height = 720;
 							maxHeight = 720;
 							width = 1280;
+						} else if(media.video === 'hires-4:3') {
+							// High(HD) resolution, 4:3 ;-)
+							height = 720;
+							maxHeight = 720;
+							width = 960;
 						} else if(media.video === 'fhdres') {
 							// Full HD resolution is only 16:9
 							height = 1080;
