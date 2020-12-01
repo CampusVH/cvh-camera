@@ -73,10 +73,10 @@ document.addEventListener('DOMContentLoaded', function() {
 							video.setAttribute('muted', 'muted');
 							document.getElementById('preview-container').appendChild(video);
 
-							var noVncLink = 'https://simon-doering.com/novnc/vnc.html?room=' + room;
-							var linkContainer = document.createElement('div');
-							linkContainer.innerHTML = `Camera feed can be viewed in noVNC at this link by clicking the connect button: <a href=${noVncLink}>${noVncLink}</a>`;
-							document.body.appendChild(linkContainer);
+							// var noVncLink = 'https://simon-doering.com/novnc/vnc.html?room=' + room;
+							// var linkContainer = document.createElement('div');
+							// linkContainer.innerHTML = `Camera feed can be viewed in noVNC at this link by clicking the connect button: <a href=${noVncLink}>${noVncLink}</a>`;
+							// document.body.appendChild(linkContainer);
 						}
 						Janus.attachMediaStream(document.getElementById('camera-preview'), stream);
 					}
