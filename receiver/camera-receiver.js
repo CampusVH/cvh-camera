@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	Janus.init({ debug: 'all', callback: function() {
 		if (!Janus.isWebrtcSupported()) {
-			alert('No WebRTC support... ');
+			Janus.error('No WebRTC support... ');
 			return;
 		}
 
@@ -37,18 +37,16 @@ document.addEventListener('DOMContentLoaded', function() {
 					},
 					error: function(error) {
 						Janus.error('Error attaching plugin: ', error);
-						alert(error);
 					},
 					onmessage: handleMessagePublisher
 				});
 			},
 			error: function(error) {
 				Janus.error(error);
-				alert(error);
 				window.location.reload();
 			},
 			destroyed: function() {
-				alert('Stopped');
+				Janus.error('Stopped');
 				window.location.reload();
 			}
 		});
@@ -72,10 +70,10 @@ function handleMessagePublisher(msg, jsep) {
 				var leaving = msg['leaving'];
 				Janus.log('Publisher left: ' + leaving);
 				if (leaving === source) {
-					alert('Publisher left');
+					Janus.log('Publisher left');
 				}
 			} else if (msg['error']) {
-				alert(msg['error']);
+				Janus.log('handleMessagePublisher error: ' + msg['error']);
 			}
 		}
 	}
@@ -103,7 +101,6 @@ function newRemoteFeed(id) {
 		},
 		error: function(error) {
 			Janus.error('Error attaching plugin (listener): ', error);
-			alert(error);
 		},
 		onmessage: handleMessageListener,
 		onremotestream: function(stream) {
@@ -143,7 +140,6 @@ function handleMessageListener(msg, jsep) {
 			},
 			error: function(error) {
 				Janus.error('WebRTC error:', error);
-				alert('WebRTC error: ', error.message);
 			}
 		});
 	}
