@@ -54,15 +54,17 @@ document.addEventListener('DOMContentLoaded', function() {
 						}
 					},
 					error: function(error) {
-						Janus.error('Error attaching plugin: ', error);
-						alert(error);
+						var formattedError = JSON.stringify(error, null, 2);
+						Janus.error('Error attaching plugin: ', formattedError);
+						alert(formattedError);
 					},
 					onmessage: handleMessagePublisher
 				});
 			},
 			error: function(error) {
-				Janus.error(error);
-				alert('Janus error: ' + error);
+				var formattedError = JSON.stringify(error, null, 2);
+				Janus.error(formattedError);
+				alert('Janus error: ' + formattedError);
 			},
 			destroyed: function() {
 				alert('Janus stopped');
@@ -122,8 +124,9 @@ document.addEventListener('DOMContentLoaded', function() {
 				remoteFeedHandle.send({ message: listen });
 			},
 			error: function(error) {
-				Janus.error('Error attaching plugin (subscriber): ', error);
-				alert(error);
+				var formattedError = JSON.stringify(error, null, 2);
+				Janus.error('Error attaching plugin (subscriber): ', formattedError);
+				alert(formattedError);
 			},
 			onmessage: handleMessageListener,
 			onremotestream: function(stream) {
@@ -165,8 +168,9 @@ document.addEventListener('DOMContentLoaded', function() {
 					remoteFeedHandle.send({ message: body, jsep });
 				},
 				error: function(error) {
-					Janus.error('WebRTC error:', error);
-					alert('WebRTC error: ', error.message);
+					var formattedError = JSON.stringify(error, null, 2);
+					Janus.error('WebRTC error:', formattedError);
+					alert('WebRTC error: ', formattedError);
 				}
 			});
 		}
