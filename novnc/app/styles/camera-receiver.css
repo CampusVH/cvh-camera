@@ -1,10 +1,13 @@
 #camera-feed {
-	position: fixed;
-	bottom: 0;
-	right: 0;
-	max-width: calc(150px + 10%);
-	max-height: calc(150px + 20%);
 	z-index: 100;
+}
+
+#camera-feed.hidden {
+	display: none;
+}
+
+#camera-feed.visually-hidden {
+	visibility: hidden;
 }
 
 #camera-feed.fullscreen {
