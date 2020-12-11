@@ -1,0 +1,46 @@
+<html>
+    <head>
+        <title>Socket-io test</title>
+    </head>
+    <body>
+        <form id="query-form">
+            <input id="query-input" type="text" />
+            <input type="submit" value="Send query" />
+        </form>
+        <ul id="event-list"></ul>
+        <script src="socket.io.js"></script>
+        <script>
+            const eventList = document.getElementById('event-list');
+
+            const newItem = (content) => {
+                const item = document.createElement('li');
+                const pre = document.createElement('pre');
+                pre.innerText = content;
+                item.appendChild(pre);
+                return item;
+            };
+
+            const socket = io();
+
+            socket.on('connect', () => {
+                eventList.appendChild(newItem('connect'));
+            });
+
+            socket.on('command', (data) => {
+                eventList.appendChild(newItem(JSON.stringify(data, null, 2)));
+            });
+
+
+            const queryForm = document.getElementById('query-form');
+            const queryInput = document.getElementById('query-input');
+
+            queryForm.onsubmit = (event) => {
+                event.preventDefault();
+                const query = queryInput.value;
+                queryInput.value = '';
+                console.log('query:', query);
+                socket.emit('query', query);
+            };
+        </script>
+    </body>
+</html>
