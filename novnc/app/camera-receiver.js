@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var currentPassword = '';
     var pin = '';
 
+    parsePasswordFromURL();
+
     passwordInput.addEventListener('input', function(event) {
         currentPassword = event.target.value;
     });
@@ -28,7 +30,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     parseRoomFromURL();
 
-    var socket = io();
+    var socketNumber = room + 4000;
+    var socket = io('https://' + window.location.hostname, { path: '/socket.io/' + socketNumber.toString() });
     var socketEventListenersRegistered = false;
     var videoMounted = false;
     var videoActiveGeometry = '';
@@ -174,6 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (video == null) {
                     video = document.createElement('video');
                     video.setAttribute('id', 'camera-feed');
+                    video.setAttribute('muted', '');
                     video.setAttribute('autoplay', '');
                     video.setAttribute('playsinline', '');
                     video.setAttribute(
@@ -186,6 +190,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     );
                     // Hide until the init socket event is received which will overwrite this
                     video.classList.add('visually-hidden');
+                    video.oncanplaythrough = function() {
+                        video.muted = true;
+                        video.play();
+                    }
                     document.body.appendChild(video);
                     // video.onclick = function(event) {
                     //  event.target.classList.toggle('fullscreen');
@@ -245,6 +253,16 @@ document.addEventListener('DOMContentLoaded', function() {
             room = parseInt(roomParam);
         } else {
             console.log('Got no valid room in URL search params, using default room ' + room);
+        }
+    }
+
+    function parsePasswordFromURL() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var passwordParam = urlParams.get('password');
+        if (passwordParam != null) {
+            pin = passwordParam;
+            console.log('pin = ' + pin);
+            passwordSubmitClicked = true;
         }
     }
 
