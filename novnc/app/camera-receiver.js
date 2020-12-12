@@ -51,6 +51,9 @@ document.addEventListener('DOMContentLoaded', function() {
         h: 0
     };
 
+    var videoPrescale = 1;
+    parseVideoPrescaleFromURL();
+
     socket.on('connect', function() {
         console.log('camera-receiver socket connected');
         // Checks when to mount the event listeners on the logic
@@ -266,6 +269,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function parseVideoPrescaleFromURL() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var videoPrescaleParam = urlParams.get('video_prescale');
+        if (videoPrescaleParam != null) {
+            var fraction = videoPrescaleParam.split('/');
+            var numerator = parseInt(fraction[0]);
+            var denominator = parseInt(fraction[1]);
+            videoPrescale = numerator / denominator;
+            console.log('videoPrescale = ' + videoPrescale);
+        }
+    }
+
     function registerSocketEventListeners() {
         socket.on('command', function (data) {
             handleCommand(data.command, data.params);
@@ -332,6 +347,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // width in vnc * factor = width in html
         var factor = canvasWidth / vncWidth;
+        factor *= videoPrescale;
 
         x *= factor;
         y *= factor;
