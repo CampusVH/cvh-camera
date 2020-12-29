@@ -1,40 +1,41 @@
 <html>
-	<head>
-		<title>Camera Sender</title>
-		<script type="text/javascript" src="adapter.min.js"></script>
-		<script type="text/javascript" src="janus.js"></script>
-		<script type="text/javascript" src="camera-sender.js"></script>
-		<link rel="stylesheet" href="camera-sender.css">
-	</head>
-	<body>
-		<div>
-			Leave the pin empty if the rooms has none set.
-		</div>
-		<select id="room-select">
-			<option value="1001">VNC 1</option>
-			<option value="1002">VNC 2</option>
-			<option value="1003">VNC 3</option>
-			<option value="1004">VNC 4</option>
-			<option value="1005">VNC 5</option>
-			<option value="1006">VNC 6</option>
-		</select>
-		<select id="res-select">
-			<option value="lowres">320x240</option>
-			<option value="lowres-16:9">320x180</option>
-			<option value="stdres">640x480</option>
-			<option value="stdres-16:9">640x360</option>
-			<option value="hires-4:3">960x720</option>
-			<option value="hires-16:9">1280x720</option>
-		</select>
-		<input type="password" id="pin-input" placeholder="Room pin" />
-		<button id="start" disabled>Start</button>
-		<button id="stop" disabled>Stop</button>
-		<form id="bandwidth-form">
-			<label>A bandwidth cap can be set here. 0 or negative means no cap.</label>
-			<br />
-			<input type="text" id="bandwidth-input" placeholder="New bitrate [in kbit/s]" />
-			<input type="submit" id="bandwidth-submit" value="Change" disabled />
-		</form>
-		<div id="preview-container"></div>
-	</body>
+    <head>
+        <title>Camera Sender</title>
+        <script type="text/javascript" src="adapter.min.js"></script>
+        <script type="text/javascript" src="janus.js"></script>
+        <script type="text/javascript" src="socket.io.js"></script>
+        <script type="text/javascript" src="camera-sender.js"></script>
+        <link rel="stylesheet" href="camera-sender.css">
+    </head>
+    <body>
+        <div>
+            Leave the pin empty if the rooms has none set.
+        </div>
+        <select id="room-select">
+            <option value="1001">VNC 1</option>
+            <option value="1002">VNC 2</option>
+            <option value="1003">VNC 3</option>
+            <option value="1004">VNC 4</option>
+            <option value="1005">VNC 5</option>
+            <option value="1006">VNC 6</option>
+        </select>
+        <select id="res-select">
+            <option value="lowres">320x240</option>
+            <option value="lowres-16:9">320x180</option>
+            <option value="stdres">640x480</option>
+            <option value="stdres-16:9">640x360</option>
+            <option value="hires-4:3">960x720</option>
+            <option value="hires-16:9">1280x720</option>
+        </select>
+        <input type="password" id="pin-input" placeholder="Room pin" />
+        <button id="start" disabled>Start</button>
+        <button id="stop" disabled>Stop</button>
+        <form id="bandwidth-form">
+            <label>A bandwidth cap can be set here. 0 or negative means no cap.</label>
+            <br />
+            <input type="text" id="bandwidth-input" placeholder="New bitrate [in kbit/s]" />
+            <input type="submit" id="bandwidth-submit" value="Change" disabled />
+        </form>
+        <div id="preview-container"></div>
+    </body>
 </html>
