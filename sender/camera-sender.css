@@ -1,4 +1,3 @@
-#preview-container {
-    margin: 8px;
-    height: 500px; 
+.visually-hidden {
+    visibility: hidden;
 }

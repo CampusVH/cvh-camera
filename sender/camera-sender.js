@@ -3,94 +3,160 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var janus = null;
     var videoroomHandle = null;
-    var room = 1006;
     var sendResolution = 'stdres';
-
-    const socketNumber = room + 4000;
-    const socket = io('https://' + window.location.hostname, { path: '/socket.io/' + socketNumber });
 
     var startButton = document.getElementById('start');
     var stopButton = document.getElementById('stop');
+    var roomIndicator = document.getElementById('room-indicator');
+
+    var gotSocketInitResponse = false;
+    var transmitting = false;
+    var room = 1006;
+    var slot = 0;
+    var token = '';
+    var feedId = null;
 
     parseRoomFromURL();
+    parseSlotFromURL();
+    parseTokenFromURL();
 
-    Janus.init({ debug: 'all', callback: function() {
-        if (!Janus.isWebrtcSupported()) {
-            alert('No WebRTC support... ');
-            return;
+    roomIndicator.innerText = `VNC ${room - 1000} (Room ${room}) - Slot ${slot} - Token: ${token || '*none*'}`;
+
+    const socketNumber = room + 4000;
+    const socket = io('https://' + window.location.hostname, {
+        path: '/socket.io/' + socketNumber
+    });
+
+    registerSocketHandlers();
+
+    function handleSenderInitResponse(data) {
+        if (!gotSocketInitResponse) {
+            gotSocketInitResponse = true;
+            console.log('sender_init response data:', data);
+            if (data.success) {
+                initJanus();
+            } else {
+                alert('Socket connection error:\n' + data.message);
+            }
         }
+    }
 
-        janus = new Janus({
-            server: server,
-            success: function() {
-                janus.attach({
-                    plugin: 'janus.plugin.videoroom',
-                    success: function(pluginHandle) {
-                        videoroomHandle = pluginHandle;
-                        Janus.log('Plugin attached! (' + videoroomHandle.getPlugin() + ', id=' + videoroomHandle.getId() + ')');    
+    function handleSetFeedIdResponse(data) {
+        console.log('set_feed_id response data:', data);
+        if (data.success) {
+            transmitting = true;
 
-                        startButton.onclick = function() {
-                            var resSelect = document.getElementById('res-select');
-                            var pinInput = document.getElementById('pin-input');
-                            startButton.setAttribute('disabled', '');
-                            resSelect.setAttribute('disabled', '');
-                            stopButton.removeAttribute('disabled');
-                            stopButton.onclick = function() {
-                                janus.destroy();
-                            };
-                            sendResolution = resSelect.value;
-                            Janus.log('sendResolution:', sendResolution);
-                            shareCamera(pinInput.value);
-                            pinInput.value = '';
-                        };
-                        startButton.removeAttribute('disabled');
-                    },
-                    error: function(error) {
-                        Janus.error('Error attaching plugin: ', error);
-                        alert(error);
-                    },
-                    webrtcState: function(on) {
-                        if (on) {
-                            var bandwidthForm = document.getElementById('bandwidth-form');
-                            var bandwidthSubmit = document.getElementById('bandwidth-submit');
-                            bandwidthForm.onsubmit = handleBandwidthFormSubmit;
-                            bandwidthSubmit.removeAttribute('disabled', '');
-                            alert('Sharing camera');
-                        } else {
-                            janus.destroy();
-                        }
-                    },
-                    onmessage: handleMessage,
-                    onlocalstream: function(stream) {
-                        if (document.getElementById('camera-preview') == null) {
-                            var video = document.createElement('video');
-                            video.setAttribute('id', 'camera-preview');
-                            video.setAttribute('autoplay', '');
-                            video.setAttribute('playsinline', '');
-                            video.setAttribute('muted', 'muted');
-                            document.getElementById('preview-container').appendChild(video);
+            var bandwidthForm = document.getElementById('bandwidth-form');
+            var bandwidthSubmit = document.getElementById('bandwidth-submit');
+            bandwidthForm.onsubmit = handleBandwidthFormSubmit;
+            bandwidthSubmit.removeAttribute('disabled', '');
+            stopButton.removeAttribute('disabled');
+            stopButton.onclick = function() {
+                janus.destroy();
+            };
 
-                            // var noVncLink = 'https://simon-doering.com/novnc/vnc.html?room=' + room;
-                            // var linkContainer = document.createElement('div');
-                            // linkContainer.innerHTML = `Camera feed can be viewed in noVNC at this link by clicking the connect button: <a href=${noVncLink}>${noVncLink}</a>`;
-                            // document.body.appendChild(linkContainer);
-                        }
-                        Janus.attachMediaStream(document.getElementById('camera-preview'), stream);
-                    }
-                });
-            },
-            error: function(error) {
-                Janus.error(error);
-                alert(error);
-                window.location.reload();
-            },
-            destroyed: function() {
-                alert('Stopped');
-                window.location.reload();
+            var video = document.getElementById('camera-preview');
+            if (video != null) {
+                video.classList.remove('visually-hidden');
+            }
+
+            alert('Sharing camera');
+        } else {
+            alert('Error: ' + data.message);
+            window.location.reload();
+        }
+    }
+
+    function registerSocketHandlers() {
+        socket.on('connect', function() {
+            // This event will be triggered on every connect including reconnects
+            // That's why the check is necessary to ensure that the event is only emitted once
+            console.log('socket on connect handler');
+            if (!gotSocketInitResponse) {
+                socket.emit(
+                    'sender_init',
+                    { slot, token },
+                    handleSenderInitResponse
+                );
             }
         });
-    }});
+    };
 
+    function initJanus() {
+        Janus.init({ debug: 'all', callback: function() {
+            if (!Janus.isWebrtcSupported()) {
+                alert('No WebRTC support... ');
+                return;
+            }
+
+            janus = new Janus({
+                server: server,
+                success: function() {
+                    janus.attach({
+                        plugin: 'janus.plugin.videoroom',
+                        success: function(pluginHandle) {
+                            videoroomHandle = pluginHandle;
+                            Janus.log('Plugin attached! (' + videoroomHandle.getPlugin() + ', id=' + videoroomHandle.getId() + ')');    
+
+                            startButton.onclick = function() {
+                                var resSelect = document.getElementById('res-select');
+                                var pinInput = document.getElementById('pin-input');
+                                startButton.setAttribute('disabled', '');
+                                resSelect.setAttribute('disabled', '');
+                                sendResolution = resSelect.value;
+                                Janus.log('sendResolution:', sendResolution);
+                                shareCamera(pinInput.value);
+                                pinInput.value = '';
+                            };
+                            startButton.removeAttribute('disabled');
+                        },
+                        error: function(error) {
+                            Janus.error('Error attaching plugin: ', error);
+                            alert(error);
+                        },
+                        webrtcState: function(on) {
+                            if (on) {
+                                socket.emit('set_feed_id', { feedId }, handleSetFeedIdResponse);
+                                // Sharing camera successful, when the set_feed_id request is successful
+                            } else {
+                                janus.destroy();
+                            }
+                        },
+                        onmessage: handleMessage,
+                        onlocalstream: function(stream) {
+                            if (document.getElementById('camera-preview') == null) {
+                                var video = document.createElement('video');
+                                video.setAttribute('id', 'camera-preview');
+                                video.setAttribute('autoplay', '');
+                                video.setAttribute('playsinline', '');
+                                video.setAttribute('muted', 'muted');
+                                if (!transmitting) {
+                                    video.classList.add('visually-hidden');
+                                }
+                                document.getElementById('preview-container').appendChild(video);
+
+                                // var noVncLink = 'https://simon-doering.com/novnc/vnc.html?room=' + room;
+                                // var linkContainer = document.createElement('div');
+                                // linkContainer.innerHTML = `Camera feed can be viewed in noVNC at this link by clicking the connect button: <a href=${noVncLink}>${noVncLink}</a>`;
+                                // document.body.appendChild(linkContainer);
+                            }
+                            Janus.attachMediaStream(document.getElementById('camera-preview'), stream);
+                        }
+                    });
+                },
+                error: function(error) {
+                    Janus.error(error);
+                    alert(error);
+                    window.location.reload();
+                },
+                destroyed: function() {
+                    alert('Stopped');
+                    window.location.reload();
+                }
+            });
+        }});
+    };
+    
     function shareCamera(pin) {
         var register = {
             request: 'join',
@@ -123,8 +189,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (event) {
             if (event === 'joined') {
                 Janus.log('Joined event:', msg);
-                Janus.log('Successfully joined room ' + msg['room'] + ' with ID ' + msg['id']);
-                if (msg['publishers'].length === 0) {
+                feedId = msg.id;
+                Janus.log('Successfully joined room ' + msg['room'] + ' with ID ' + feedId);
+                //if (msg['publishers'].length === 0) {
                     videoroomHandle.createOffer({
                         media: {
                             videoSend: true,
@@ -145,10 +212,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             alert('WebRTC error: ' + error.message);
                         }
                     });
-                } else {
-                    alert('There is already somebody who is sharing his camera in this room!');
-                    window.location.reload();
-                }
+                //} else {
+                //    alert('There is already somebody who is sharing his camera in this room!');
+                //    window.location.reload();
+                //}
             }
             if (event === 'event' && msg['error']) {
                 alert('Error message: ' + msg['error'] + '.\nError object: ' + JSON.stringify(msg, null, 2));
@@ -163,15 +230,32 @@ document.addEventListener('DOMContentLoaded', function() {
     function parseRoomFromURL() {
         var urlParams = new URLSearchParams(window.location.search);
         var roomParam = urlParams.get('room');
-        var roomIndicator = document.getElementById('room-indicator');
-        var appendix = '';
         if (roomParam != null && !isNaN(roomParam)) {
             room = parseInt(roomParam);
         } else {
             console.log('Got no valid room in URL search params, using default room ' + room);
-            appendix = ' (Default value)';
         }
-        roomIndicator.innerText = `VNC ${room - 1000} - Room ${room}` + appendix;
+    }
+
+    function parseSlotFromURL() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var slotParam = urlParams.get('slot');
+        if (slotParam != null && !isNaN(slotParam)) {
+            slot = parseInt(slotParam);
+        } else {
+            console.log('Got no valid slot in URL search params, using default slot ' + slot);
+        }
+    }
+
+    function parseTokenFromURL() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var tokenParam = urlParams.get('token');
+        if (tokenParam != null) {
+            token = tokenParam;
+        } else {
+            console.log('Got no valid token in URL search params, using default token ' + token);
+        }
+
     }
 }, false);
 

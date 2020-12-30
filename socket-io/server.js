@@ -1,3 +1,5 @@
+const ValidationError = require('./models/validation-error');
+
 const readline = require('readline');
 const rl = readline.createInterface({
     input: process.stdin,
@@ -41,6 +43,7 @@ for (let i = 0; i < cameraSlots; i++) {
         token: null,
         feedActive: false,
         feedId: null,
+        senderSocketId: null,
         visibility: {
             command: 'show',
             params: []
@@ -52,11 +55,129 @@ for (let i = 0; i < cameraSlots; i++) {
     });
 }
 
+const handleSetFeedId = (socket, data, fn) => {
+    let success = true;
+    let message = '';
+
+    try {
+        const slot = socket.cameraSlot;
+        const currentCameraState = cameraStates[slot];
+
+        if (currentCameraState.token !== socket.cameraSlotToken) {
+            console.log('Error: Got set_feed_id event for slot ' + slot + ' with an old token');
+            throw new ValidationError('The provided token is not valid anymore - the feed is not transmitted');
+        }
+
+        if (currentCameraState.feedActive) {
+            console.log('Error: Got set_feed_id event for slot ' + slot + ' which already has an active feed');
+            throw new ValidationError('There is already somebody using this slot');
+        }
+
+        if (data == null) {
+            console.log('Error: Got set_feed_id event for slot ' + slot + ' without data');
+            throw new ValidationError('Could not get feed id because no data was provided');
+        }
+
+        const feedId = data.feedId;
+        if (feedId == null) {
+            console.log('Error: Got set_feed_id event without a feed id on slot ' + slot);
+            throw new ValidationError('No feed id was provided');
+        }
+
+        console.log('Setting feed id of slot ' + slot + ' to ' + feedId);
+        message = 'Successfully set feed id - you are now using this slot';
+
+        currentCameraState.feedActive = true;
+        currentCameraState.feedId = data.id;
+        currentCameraState.senderSocketId = socket.id;
+    } catch (e) {
+        if (e instanceof ValidationError) {
+            success = false;
+            message = e.message;
+        } else {
+            throw e;
+        }
+    }
+
+    fn({ success, message });
+
+    // TODO: Emit some kind of 'new feed to attach to on slot x' to receivers
+};
+
+const handleSenderDisconnect = (socket, reason) => {
+    const slot = socket.cameraSlot;
+    if (slot != null) {
+        const currentCameraState = cameraStates[slot];
+        if (currentCameraState.feedActive && socket.id === currentCameraState.senderSocketId) {
+            console.log('Sender on slot ' + slot + ' disconnected - Clearing slot');
+            currentCameraState.feedActive = false;
+            currentCameraState.feedId = null;
+            currentCameraState.senderSocketId = null;
+
+            // TODO: Emit some kind of 'feed x not available anymore' to receivers
+        }
+    }
+};
+
+const registerSenderHandlers = (socket) => {
+    socket.on('set_feed_id', handleSetFeedId.bind(null, socket));
+    socket.on('disconnect', handleSenderDisconnect.bind(null, socket));
+};
+
+const handleSenderInit = (socket, data, fn) => {
+    let success = true;
+    let message = '';
+    try {
+        const slotStr = data.slot;
+        if (isNaN(slotStr)) {
+            console.log('Error: Got socket connection with slot ' + slotStr + ' that cannot be parsed to a number');
+            throw new ValidationError('Slot ' + slotStr + ' cannot be parsed to number');
+        }
+
+        const slot = parseInt(slotStr);
+        if (slot < 0 || slot > cameraStates.length - 1) {
+            console.log('Error: Got socket connection with slot ' + slot + ' which is not in the list of slots');
+            throw new ValidationError('Slot ' + slot + ' is not in the list of slots');
+        }
+
+        const currentCameraState = cameraStates[slot];
+        if (!currentCameraState.slotActive) {
+            console.log('Error: Got socket connection for inactive slot ' + slot);
+            throw new ValidationError('Slot ' + slot + ' is not active');
+        }
+
+        const token = data.token;
+        if (currentCameraState.token !== token) {
+            console.log('Error: Got socket connecion with wrong token ' + token + ' for slot ' + slot);
+            throw new ValidationError('Invalid token');
+        }
+
+        console.log('Got sender socket connection on slot ' + slot);
+        
+        message = 'Socket authenticated';
+        socket.cameraSlot = slot;
+        socket.cameraSlotToken = data.token;
+
+        registerSenderHandlers(socket);
+    } catch (e) {
+        if (e instanceof ValidationError) {
+            success = false;
+            message = e.message;
+        } else {
+            throw e;
+        }
+    }
+
+    fn({ success, message });
+};
+
 io.on('connection', (socket) => {
     socket.on('query_state', () => {
         console.log('Got state query from socket');
         socket.emit('init', cameraStates);
     });
+
+    socket.on('sender_init', handleSenderInit.bind(null, socket));
 });
 
 const handleInternalCommand = (command, slot, params) => {
@@ -80,8 +201,12 @@ const handleInternalCommand = (command, slot, params) => {
                 return;
             }
             console.log('Deactivating slot ' + slot);
-            currentCameraState.token = null;
+            // TODO: Emit 'feed x is not available anymore' to receivers
             currentCameraState.slotActive = false;
+            currentCameraState.token = null;
+            currentCameraState.feedActive = false;
+            currentCameraState.feedId = null;
+            currentCameraState.senderSocketId = null;
             break;
         case 'refresh_token':
             if (!currentCameraState.slotActive) {
@@ -112,7 +237,12 @@ const handleCommand = (line) => {
         console.log('Error: Got no slot to apply the command on');
         return;
     }
-    const slot = +params.shift();
+    const slotStr = params.shift();
+    if (isNaN(slotStr)) {
+        console.log('Error: Could not parse slot ' + slotStr + ' to an integer');
+        return;
+    }
+    const slot = parseInt(slotStr);
     console.log('command:', command);
     console.log('slot:', slot);
     console.log('params:', params);
