@@ -15,7 +15,7 @@ if (process.env.PORT) {
     console.log('Got no PORT environment variable - using default port ' + port);
 }
 
-let cameraSlots = 2;
+let cameraSlots = 4;
 if (process.env.CAMERA_SLOTS) {
     cameraSlots = +process.env.CAMERA_SLOTS;
     console.log('Using camera count ' + cameraSlots + ' from CAMERA_SLOTS environment variable');
@@ -55,6 +55,20 @@ for (let i = 0; i < cameraSlots; i++) {
     });
 }
 
+const emitNewFeed = (slot) => {
+    const cameraState = cameraStates[slot];
+    io.emit('new_feed', {
+        slot,
+        feedId: cameraState.feedId,
+        visibility: cameraState.visibility,
+        geometry: cameraState.geometry
+    });
+};
+
+const emitRemoveFeed = (slot) => {
+    io.emit('remove_feed', { slot });
+};
+
 const handleSetFeedId = (socket, data, fn) => {
     let success = true;
     let message = '';
@@ -88,8 +102,10 @@ const handleSetFeedId = (socket, data, fn) => {
         message = 'Successfully set feed id - you are now using this slot';
 
         currentCameraState.feedActive = true;
-        currentCameraState.feedId = data.id;
+        currentCameraState.feedId = feedId;
         currentCameraState.senderSocketId = socket.id;
+
+        emitNewFeed(slot);
     } catch (e) {
         if (e instanceof ValidationError) {
             success = false;
@@ -100,8 +116,6 @@ const handleSetFeedId = (socket, data, fn) => {
     }
 
     fn({ success, message });
-
-    // TODO: Emit some kind of 'new feed to attach to on slot x' to receivers
 };
 
 const handleSenderDisconnect = (socket, reason) => {
@@ -114,7 +128,7 @@ const handleSenderDisconnect = (socket, reason) => {
             currentCameraState.feedId = null;
             currentCameraState.senderSocketId = null;
 
-            // TODO: Emit some kind of 'feed x not available anymore' to receivers
+            emitRemoveFeed(slot);
         }
     }
 };
@@ -171,11 +185,24 @@ const handleSenderInit = (socket, data, fn) => {
     fn({ success, message });
 };
 
+const handleQueryState = (fn) => {
+    console.log('Got state query from socket');
+    let response = {};
+    for (let i = 0; i < cameraStates.length; i++) {
+        const cameraState = cameraStates[i];
+        if (cameraState.feedActive) {
+            response[i] = {
+                feedId: cameraState.feedId,
+                visibility: cameraState.visibility,
+                geometry: cameraState.geometry
+            };
+        }
+    }
+    fn(response);
+}
+
 io.on('connection', (socket) => {
-    socket.on('query_state', () => {
-        console.log('Got state query from socket');
-        socket.emit('init', cameraStates);
-    });
+    socket.on('query_state', handleQueryState);
 
     socket.on('sender_init', handleSenderInit.bind(null, socket));
 });
@@ -201,7 +228,8 @@ const handleInternalCommand = (command, slot, params) => {
                 return;
             }
             console.log('Deactivating slot ' + slot);
-            // TODO: Emit 'feed x is not available anymore' to receivers
+            emitRemoveFeed(slot);
+
             currentCameraState.slotActive = false;
             currentCameraState.token = null;
             currentCameraState.feedActive = false;
@@ -228,7 +256,7 @@ const handleInternalCommand = (command, slot, params) => {
 };
 
 const handleCommand = (line) => {
-    const emitCommand = false;
+    let emitCommand = false;
 
     console.log('Got command from stdin:', line);
     const params = line.split(' ');
@@ -275,8 +303,9 @@ const handleCommand = (line) => {
 
     console.log('new cameraState:', currentCameraState);
     
-    if (emitCommand) {
+    if (currentCameraState.feedActive && emitCommand) {
         io.emit('command', {
+            slot,
             command,
             params
         });
@@ -287,7 +316,7 @@ rl.on('line', handleCommand);
 
 const cleanup = () => {
     console.log('cleanup');
-    io.emit('hide_all');
+    io.emit('remove_all_feeds');
 };
 
 const exitHandler = (options, exitCode) => {

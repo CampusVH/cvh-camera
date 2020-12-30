@@ -1,16 +1,16 @@
-#camera-feed {
+.camera-feed {
 	z-index: 100;
 }
 
-#camera-feed.hidden {
+.camera-feed.hidden {
 	display: none;
 }
 
-#camera-feed.visually-hidden {
+.camera-feed.visually-hidden {
 	visibility: hidden;
 }
 
-#camera-feed.fullscreen {
+.camera-feed.fullscreen {
 	max-width: none;
 	max-height: none;
 	width: 100%;

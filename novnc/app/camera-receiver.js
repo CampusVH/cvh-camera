@@ -1,14 +1,13 @@
 document.addEventListener('DOMContentLoaded', function() {
-
     var server = 'https://' + window.location.hostname + ':8089/janus';
 
     var janus = null;
-    var videoroomHandle = null;
-    var remoteFeedHandle = null;
+    var janusPluginHandles = {};
+    var janusInitialised = false;
     var opaqueId = 'camera-receiver-' + Janus.randomString(12);
 
     var room = 1000;
-    var source = null;
+    var source = {};
 
     var passwordSubmitClicked = false;
 
@@ -32,9 +31,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var socketNumber = room + 4000;
     var socket = io('https://' + window.location.hostname, { path: '/socket.io/' + socketNumber.toString() });
-    var socketEventListenersRegistered = false;
-    var videoMounted = false;
-    var videoActiveGeometry = '';
+    // Every property (slot) holds a string that represents the active geometry for that camera slot
+    var videoActiveGeometry = {};
     var previousCanvasGeometryState = {
         vncHeight: 0,
         vncWidth: 0,
@@ -43,13 +41,15 @@ document.addEventListener('DOMContentLoaded', function() {
         canvasX: 0,
         canvasY: 0
     };
-    var videoGeometryParams = {
-        origin: 'lt',
-        x: 0,
-        y: 0,
-        w: 0,
-        h: 0
-    };
+    var videoGeometryParams = {};
+    // Every video slot has the following structure
+    // {
+    //     origin: 'lt',
+    //     x: 0,
+    //     y: 0,
+    //     w: 0,
+    //     h: 0
+    // }
 
     var videoPrescale = 1;
     parseVideoPrescaleFromURL();
@@ -60,19 +60,29 @@ document.addEventListener('DOMContentLoaded', function() {
         var socketMountCheckInterval = setInterval(function () {
             // Video element and vnc canvas must be mounted
             if (
-                videoMounted &&
+                janusInitialised &&
+                passwordSubmitClicked &&
                 document.querySelector('canvas') != null
             ) {
                 console.log('mount socket logic');
                 clearInterval(socketMountCheckInterval);
-                if (!socketEventListenersRegistered) {
-                    registerSocketEventListeners();
-                }
-                socket.emit('query_state');
+                registerSocketHandlers();
+                socket.emit('query_state', handleQueryStateResponse);
                 setInterval(adjustVideoGeometry, 500);
             }
         }, 500);
     });
+
+    function handleQueryStateResponse(cameraStates) {
+        console.log('handleQueryStateResponse:', cameraStates);
+        Object.keys(cameraStates).forEach(function(slot) {
+            var state = cameraStates[slot];
+            newRemoteFeed(slot, state.feedId, {
+                geometry: state.geometry, 
+                visibility: state.visibility
+            });
+        });
+    }
 
     Janus.init({ debug: true, callback: function() {
         if (!Janus.isWebrtcSupported()) {
@@ -83,29 +93,8 @@ document.addEventListener('DOMContentLoaded', function() {
         janus = new Janus({
             server,
             success: function() {
-                janus.attach({
-                    plugin: 'janus.plugin.videoroom',
-                    opaqueId,
-                    success: function(pluginHandle) {
-                        videoroomHandle = pluginHandle;
-                        Janus.log('Plugin attached! (' + videoroomHandle.getPlugin() + ', id=' + videoroomHandle.getId() + ')');
-
-                        if (passwordSubmitClicked) {
-                            joinRoom();
-                        } else {
-                            passwordButton.onclick = function() {
-                                pin = currentPassword;
-                                joinRoom();
-                            };
-                        }
-                    },
-                    error: function(error) {
-                        var formattedError = JSON.stringify(error, null, 2);
-                        Janus.error('Error attaching plugin: ', formattedError);
-                        alert(formattedError);
-                    },
-                    onmessage: handleMessagePublisher
-                });
+                console.log('Janus initialised');
+                janusInitialised = true;
             },
             error: function(error) {
                 var formattedError = JSON.stringify(error, null, 2);
@@ -118,105 +107,83 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }});
 
-    function handleMessagePublisher(msg, jsep) {
-        var event = msg['videoroom'];
-        if (event) {
-            if (event === 'joined') {
-                Janus.log('Successfully joined room ' + msg['room'] + ' with ID ' + msg['id']);
-                passwordButton.onclick = null;
-                var publishers = msg['publishers'];
-                if (publishers && publishers.length !== 0) {
-                    newRemoteFeed(publishers[0]['id']);
-                }
-            } else if (event === 'event') {
-                var publishers = msg['publishers'];
-                if (publishers && publishers.length !== 0) {
-                    newRemoteFeed(publishers[0]['id']);
-                } else if (msg['leaving'] && msg['leaving'] === source) {
-                    Janus.log('Publisher left');
-                    var video = document.getElementById('camera-feed');
-                    if (video != null) {
-                        video.classList.add('hidden');
-                    }
-                } else if (msg['error']) {
-                    if (msg['error_code'] === 433) {
-                        console.error('Janus: wrong pin "' + pin + '" for room ' + room);
-                        return;
-                    }
-                    alert('Error message: ' + msg['error'] + '.\nError object: ' + JSON.stringify(msg, null, 2));
-                }
-            }
-        }
-        if (jsep) {
-            videoRoomHandle.handleRemoteJsep({ jsep });
-        }
+    function removeRemoteFeed(slot) {
+        delete videoActiveGeometry[slot];
+        delete videoGeometryParams[slot];
+        delete source[slot];
+        var video = document.getElementById('camera-feed-' + slot);
+        video.remove();
+        janusPluginHandles[slot].detach();
+        delete janusPluginHandles[slot];
     }
 
-    function newRemoteFeed(id) {
-        source = id;
+    function newRemoteFeed(slot, feedId, initialState) {
+        source[slot] = feedId;
+        var cameraElementId = 'camera-feed-' + slot;
+
+        var video = document.getElementById(cameraElementId);
+        if (video == null) {
+            video = document.createElement('video');
+            video.setAttribute('id', cameraElementId);
+            video.setAttribute('muted', '');
+            video.setAttribute('autoplay', '');
+            video.setAttribute('playsinline', '');
+            // Necessary for autoplay without user interaction
+            video.oncanplaythrough = function() {
+                video.muted = true;
+                video.play();
+            }
+            video.classList.add('camera-feed');
+            document.body.appendChild(video);
+        }
+
+        var remoteFeedHandle = null;
+        
         janus.attach({
             plugin: 'janus.plugin.videoroom',
             opaqueId,
             success: function(pluginHandle) {
                 remoteFeedHandle = pluginHandle;
-                Janus.log('Plugin attached (subscriber)! (' + remoteFeedHandle.getPlugin() + ', id=' + remoteFeedHandle.getId() + ')');
+                janusPluginHandles[slot] = pluginHandle;
+                Janus.log('Plugin attached (subscriber slot ' + slot + ')! (' + remoteFeedHandle.getPlugin() + ', id=' + remoteFeedHandle.getId() + ')');
                 var listen = {
                     request: 'join',
                     room,
                     ptype: 'subscriber',
-                    feed: id,
+                    feed: feedId,
                     pin
                 };
                 remoteFeedHandle.send({ message: listen });
             },
             error: function(error) {
                 var formattedError = JSON.stringify(error, null, 2);
-                Janus.error('Error attaching plugin (subscriber): ', formattedError);
+                Janus.error('Error attaching plugin (subscriber slot ' + slot + '): ', formattedError);
                 alert(formattedError);
             },
-            onmessage: handleMessageListener,
+            onmessage: handleMessageSubscriber.bind(null, slot),
             onremotestream: function(stream) {
-                var video = document.getElementById('camera-feed');
-                if (video == null) {
-                    video = document.createElement('video');
-                    video.setAttribute('id', 'camera-feed');
-                    video.setAttribute('muted', '');
-                    video.setAttribute('autoplay', '');
-                    video.setAttribute('playsinline', '');
-                    video.setAttribute(
-                        'style',
-                        'position: fixed;' +
-                        'bottom: 0;' +
-                        'right: 0;' +
-                        'max-width: calc(150px + 10%);' +
-                        'max-height: calc(150px + 20%);'
-                    );
-                    // Hide until the init socket event is received which will overwrite this
-                    video.classList.add('visually-hidden');
-                    video.oncanplaythrough = function() {
-                        video.muted = true;
-                        video.play();
-                    }
-                    document.body.appendChild(video);
-                    // video.onclick = function(event) {
-                    //  event.target.classList.toggle('fullscreen');
-                    // }
-                    videoMounted = true;
-                }
-                video.classList.remove('hidden');
                 Janus.attachMediaStream(video, stream);
             },
             oncleanup: function() {
-                Janus.log('Got a cleanup notification (remote feed ' + source + ')');
+                Janus.log('Got a cleanup notification');
             }
         });
+
+        
+        handleCommand(slot, initialState.geometry.command, initialState.geometry.params);
+        handleCommand(slot, initialState.visibility.command, initialState.visibility.params);
     }
 
-    function handleMessageListener(msg, jsep) {
+    function handleMessageSubscriber(slot, msg, jsep) {
+        var remoteFeedHandle = janusPluginHandles[slot];
         var event = msg['videoroom'];
         if (event) {
             if (event === 'attached') {
-                Janus.log('Successfully attached to feed ' + source + ' in room ' + msg['room']);
+                Janus.log('Successfully attached to feed on slot ' + slot + ' in room ' + msg['room']);
+            } else if (event === 'event') {
+                if (msg['error']) {
+                    console.error('handleMessageSubscriber', msg['error']);
+                }
             }
         }
         if (jsep) {
@@ -237,16 +204,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
-    }
-
-    function joinRoom() {
-        var register = {
-            request: 'join',
-            room,
-            ptype: 'publisher',
-            pin
-        };
-        videoroomHandle.send({ message: register });
     }
 
     function parseRoomFromURL() {
@@ -281,23 +238,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function registerSocketEventListeners() {
+    function registerSocketHandlers() {
         socket.on('command', function (data) {
-            handleCommand(data.command, data.params);
+            handleCommand(data.slot, data.command, data.params);
         });
 
-        socket.on('init', function (cameraState) {
-            handleCommand(cameraState.geometry.command, cameraState.geometry.params);
-            handleCommand(cameraState.visibility.command, cameraState.visibility.params);
+        socket.on('new_feed', function(data) {
+            console.log('new_feed', data);
+            newRemoteFeed(data.slot, data.feedId, {
+                geometry: data.geometry,
+                visibility: data.visibility
+            });
         });
 
-        socketEventListenersRegistered = true;
+        socket.on('remove_feed', function(data) {
+            console.log('remove_feed', data);
+            removeRemoteFeed(data.slot);
+        });
+
+        socket.on('remove_all_feeds', function() {
+            Object.keys(videoGeometryParams).forEach(function(slot) {
+                removeRemoteFeed(slot);
+            });
+        });
     }
 
-    function handleCommand(command, params) {
-        var video = document.getElementById('camera-feed');
+    function handleCommand(slot, command, params) {
         console.log('Got command:', command);
+        console.log('For slot:', slot);
         console.log('With params:', params);
+        var video = document.getElementById('camera-feed-' + slot);
+        if (video == null) {
+            console.log('handleCommand video element is null');
+        }
         switch(command) {
             case 'set_geometry_relative_to_window':
                 var origin = params[0];
@@ -307,8 +280,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 var h = params[4];
 
                 setFixedPosition(video, origin, x, y, w, h);
-                videoGeometryParams = { origin, x, y, w, h };
-                videoActiveGeometry = command;
+                videoGeometryParams[slot] = { origin, x, y, w, h };
+                videoActiveGeometry[slot] = command;
 
                 break;
             case 'set_geometry_relative_to_canvas':
@@ -318,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var w = parseInt(params[3]);
                 var h = parseInt(params[4]);
 
-                handleSetGeometryRelativeToCanvas(origin, x, y, w, h);
+                handleSetGeometryRelativeToCanvas(video, slot, origin, x, y, w, h);
 
                 break;
             case 'show':
@@ -333,11 +306,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function handleSetGeometryRelativeToCanvas(origin, x, y, w, h) {
-        var video = document.getElementById('camera-feed');
+    function handleSetGeometryRelativeToCanvas(video, slot, origin, x, y, w, h) {
         // Site contains only one canvas - the vnc viewer
         var canvas = document.querySelector('canvas');
-        videoGeometryParams = { origin, x, y, w, h };
+        videoGeometryParams[slot] = { origin, x, y, w, h };
 
         var vncWidth = parseInt(canvas.width);
         var vncHeight = parseInt(canvas.height);
@@ -378,7 +350,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         setFixedPosition(video, origin, x, y, w, h);
-        videoActiveGeometry = 'set_geometry_relative_to_canvas';
+        videoActiveGeometry[slot] = 'set_geometry_relative_to_canvas';
         previousCanvasGeometryState = {
             vncWidth,
             vncHeight,
@@ -389,7 +361,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    function setFixedPosition(element, origin, x, y, w, h) {
+    function setFixedPosition(video, origin, x, y, w, h) {
         var style = ( 
             'position: fixed;' +
             `width: ${w}px;` +
@@ -415,35 +387,40 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        element.setAttribute('style', style);
+        video.setAttribute('style', style);
     }
 
     function adjustVideoGeometry() {
-        if (videoActiveGeometry === 'set_geometry_relative_to_canvas') {
-            var canvas = document.querySelector('canvas');
-            var canvasRect = canvas.getBoundingClientRect();
-            var vncWidth = canvas.width;
-            var vncHeight = canvas.height;
-            var canvasWidth = canvasRect.width;
-            var canvasHeight = canvasRect.height;
-            var canvasX = canvasRect.x;
-            var canvasY = canvasRect.y
-            if (
-                vncWidth !== previousCanvasGeometryState.vncWidth ||
-                vncHeight !== previousCanvasGeometryState.vncHeight ||
-                canvasWidth !== previousCanvasGeometryState.canvasWidth ||
-                canvasHeight !== previousCanvasGeometryState.canvasHeight ||
-                canvasX !== previousCanvasGeometryState.x ||
-                canvasY !== previousCanvasGeometryState.y
-            ) {
-                handleSetGeometryRelativeToCanvas(
-                    videoGeometryParams.origin,
-                    videoGeometryParams.x,
-                    videoGeometryParams.y,
-                    videoGeometryParams.w,
-                    videoGeometryParams.h
-                );
-            }
+        var canvas = document.querySelector('canvas');
+        var canvasRect = canvas.getBoundingClientRect();
+        var vncWidth = canvas.width;
+        var vncHeight = canvas.height;
+        var canvasWidth = canvasRect.width;
+        var canvasHeight = canvasRect.height;
+        var canvasX = canvasRect.x;
+        var canvasY = canvasRect.y
+        if (
+            vncWidth !== previousCanvasGeometryState.vncWidth ||
+            vncHeight !== previousCanvasGeometryState.vncHeight ||
+            canvasWidth !== previousCanvasGeometryState.canvasWidth ||
+            canvasHeight !== previousCanvasGeometryState.canvasHeight ||
+            canvasX !== previousCanvasGeometryState.canvasX ||
+            canvasY !== previousCanvasGeometryState.canvasY
+        ) {
+            Object.keys(videoGeometryParams).forEach(function(slot) {
+                if (videoActiveGeometry[slot] === 'set_geometry_relative_to_canvas') {
+                    var params = videoGeometryParams[slot];
+                    handleSetGeometryRelativeToCanvas(
+                        document.getElementById('camera-feed-' + slot),
+                        slot,
+                        params.origin,
+                        params.x,
+                        params.y,
+                        params.w,
+                        params.h
+                    );
+                }
+            });
         }
     }
 });
