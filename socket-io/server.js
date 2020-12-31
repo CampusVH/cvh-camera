@@ -7,7 +7,7 @@ const rl = readline.createInterface({
     terminal: false
 });
 
-let port = 5006;
+let port = 5000;
 if (process.env.PORT) {
     port = +process.env.PORT;
     console.log('Using port ' + port + ' from PORT environment variable');
