@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var socketNumber = room + 4000;
     var socket = io('https://' + window.location.hostname, { path: '/socket.io/' + socketNumber.toString() });
+    var socketLogicMounted = false;
     // Every property (slot) holds a string that represents the active geometry for that camera slot
     var videoActiveGeometry = {};
     var previousCanvasGeometryState = {
@@ -48,7 +49,8 @@ document.addEventListener('DOMContentLoaded', function() {
     //     x: 0,
     //     y: 0,
     //     w: 0,
-    //     h: 0
+    //     h: 0,
+    //     z: 0
     // }
 
     var videoPrescale = 1;
@@ -64,11 +66,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 passwordSubmitClicked &&
                 document.querySelector('canvas') != null
             ) {
-                console.log('mount socket logic');
                 clearInterval(socketMountCheckInterval);
-                registerSocketHandlers();
+                // Should only be triggered once, but the connect event
+                // can be triggered multiple time for example when reconnecting
+                if (!socketLogicMounted) {
+                    socketLogicMounted = true;
+                    console.log('mount socket logic');
+                    registerSocketHandlers();
+                    setInterval(adjustVideoGeometry, 500);
+                }
                 socket.emit('query_state', handleQueryStateResponse);
-                setInterval(adjustVideoGeometry, 500);
             }
         }, 500);
     });
@@ -278,9 +285,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 var y = params[2];
                 var w = params[3];
                 var h = params[4];
+                var z = 100;
+                if (params.length >= 6) {
+                    z += parseInt(params[5]);
+                }
 
-                setFixedPosition(video, origin, x, y, w, h);
-                videoGeometryParams[slot] = { origin, x, y, w, h };
+                setFixedPosition(video, origin, x, y, w, h, z);
+                videoGeometryParams[slot] = { origin, x, y, w, h, z };
                 videoActiveGeometry[slot] = command;
 
                 break;
@@ -290,8 +301,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 var y = parseInt(params[2]);
                 var w = parseInt(params[3]);
                 var h = parseInt(params[4]);
+                var z = 100;
+                if (params.length >= 6) {
+                    z += parseInt(params[5]);
+                }
 
-                handleSetGeometryRelativeToCanvas(video, slot, origin, x, y, w, h);
+                handleSetGeometryRelativeToCanvas(video, slot, origin, x, y, w, h, z);
 
                 break;
             case 'show':
@@ -306,10 +321,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function handleSetGeometryRelativeToCanvas(video, slot, origin, x, y, w, h) {
+    function handleSetGeometryRelativeToCanvas(video, slot, origin, x, y, w, h, z) {
         // Site contains only one canvas - the vnc viewer
         var canvas = document.querySelector('canvas');
-        videoGeometryParams[slot] = { origin, x, y, w, h };
+        videoGeometryParams[slot] = { origin, x, y, w, h, z };
 
         var vncWidth = parseInt(canvas.width);
         var vncHeight = parseInt(canvas.height);
@@ -349,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function() {
             y += (canvasRect.bottom - canvasRect.height);
         }
 
-        setFixedPosition(video, origin, x, y, w, h);
+        setFixedPosition(video, origin, x, y, w, h, z);
         videoActiveGeometry[slot] = 'set_geometry_relative_to_canvas';
         previousCanvasGeometryState = {
             vncWidth,
@@ -361,11 +376,12 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    function setFixedPosition(video, origin, x, y, w, h) {
+    function setFixedPosition(video, origin, x, y, w, h, z) {
         var style = ( 
             'position: fixed;' +
             `width: ${w}px;` +
-            `height: ${h}px;`
+            `height: ${h}px;` +
+            `z-index: ${z};`
         );
         
         var xOrigin = origin.charAt(0);
@@ -417,7 +433,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         params.x,
                         params.y,
                         params.w,
-                        params.h
+                        params.h,
+                        params.z
                     );
                 }
             });
