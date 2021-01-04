@@ -4,6 +4,7 @@ import { mountCleanupLogic } from './util/cleanup';
 import { ValidationError } from './models/validation-error';
 import { CameraSlotState, CommandDescriptor } from './models/camera-slot-state';
 import { SenderSocket } from './models/sender-socket';
+import { config } from './config/config';
 
 const readline = require('readline');
 const rl = readline.createInterface({
@@ -12,32 +13,7 @@ const rl = readline.createInterface({
     terminal: false
 });
 
-let port = 5000;
-if (process.env.PORT) {
-    port = +process.env.PORT;
-    console.log('Using port ' + port + ' from PORT environment variable');
-} else {
-    console.log(
-        'Got no PORT environment variable - using default port ' + port
-    );
-}
-
-let cameraSlots = 4;
-if (process.env.CAMERA_SLOTS) {
-    cameraSlots = +process.env.CAMERA_SLOTS;
-    console.log(
-        'Using camera count ' +
-            cameraSlots +
-            ' from CAMERA_SLOTS environment variable'
-    );
-} else {
-    console.log(
-        'Got no CAMERA_SLOTS environment variable - using default count of ' +
-            cameraSlots
-    );
-}
-
-const io = new SocketIOServer(port);
+const io = new SocketIOServer(config.port);
 
 const visibilityCommands = ['hide', 'show'];
 const geometryCommands = [
@@ -47,7 +23,7 @@ const geometryCommands = [
 const internalCommands = ['activate_slot', 'deactivate_slot', 'refresh_token'];
 
 let cameraSlotState: CameraSlotState[] = [];
-for (let i = 0; i < cameraSlots; i++) {
+for (let i = 0; i < config.cameraSlots; i++) {
     cameraSlotState.push(new CameraSlotState());
 }
 

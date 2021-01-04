@@ -6,20 +6,23 @@ Note that the project and its documentation are still in development.
 
 In this documentation clients that publish a feed will be referred to as *senders* and clients who receive a feed will be referred to as *receivers* or *viewers*.
 
-# Nodejs Server
+# Camera Server
 
 CVH-Camera uses a Nodejs server with the socket.io library to send events regarding the camera feeds out to the receivers in realtime. The socket connection is also used to verify feeds that are published in the Janus rooms and only send those to the receivers. This way no unwanted feeds can be shown to the receivers while still having a public password for the Janus room itself.
 
-One instance of the Nodejs server is meant to manage one Janus room. It does this by defining slots for cameras which are all disabled by default. To activate a slot, one has to provide a token for that slot. This token will be required to be able to send a feed on that slot. As mentioned above, only feeds that are verified in that way are shown to the receivers.
+One instance of the camera server is meant to manage one Janus room. It does this by defining slots for cameras which are all disabled by default. To activate a slot, one has to provide a token for that slot. This token will be required to be able to send a feed on that slot. As mentioned above, only feeds that are verified in that way are shown to the receivers.
 One can also refresh the token for a given slot or simply deactivate it.
 
 ## Config
 
-The Nodejs server reads the following environment variables to configure some of its behavior:
+The camera server can read a path to a config file from the `CONFIG_PATH` environment variable.
+This config file has to be in the json format and should have [this structure](./camera-server/example-config.json):
 
-* `PORT`: The port on which the server will listen. Defaults to `5000`.
+Below is a description of the config file's properties:
 
-* `CAMERA_SLOTS`: The camera slots available for this room. Defaults to `4`.
+* `port`: The port on which the server will listen. Defaults to `5000`.
+
+* `cameraSlots`: The camera slots available for this room. Defaults to `4`.
 
 ## Stdin-Interface
 
