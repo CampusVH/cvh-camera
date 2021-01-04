@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ) {
                 clearInterval(socketMountCheckInterval);
                 // Should only be triggered once, but the connect event
-                // can be triggered multiple time for example when reconnecting
+                // can be triggered multiple times for example when reconnecting
                 if (!socketLogicMounted) {
                     socketLogicMounted = true;
                     console.log('mount socket logic');
