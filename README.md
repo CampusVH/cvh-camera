@@ -24,7 +24,7 @@ Once the code is compiled, the server can be started with `node server.js` in th
 ## Config
 
 The camera server can read a path to a config file from the `CONFIG_PATH` environment variable.
-This config file has to be in the json format and should have [this structure](./camera-server/example-config.json):
+This config file has to be in the json format and should have [this structure](./camera-server/example-config.json).
 
 Below is a description of the config file's properties:
 
