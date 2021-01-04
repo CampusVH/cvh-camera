@@ -13,6 +13,14 @@ CVH-Camera uses a Nodejs server with the socket.io library to send events regard
 One instance of the camera server is meant to manage one Janus room. It does this by defining slots for cameras which are all disabled by default. To activate a slot, one has to provide a token for that slot. This token will be required to be able to send a feed on that slot. As mentioned above, only feeds that are verified in that way are shown to the receivers.
 One can also refresh the token for a given slot or simply deactivate it.
 
+## Compiling and Running the Server
+
+The camera server is written in typescript, a superset of javascript. That means that is has to be compiled before being able to start.
+To compile the code, install the typescript compiler using npm `npm install -g typescript` or apt `apt install node-typescript`.
+Navigate into the `camera-server` folder and run `tsc`. This will compile the files into a newly created folder `dist`.
+
+Once the code is compiled, the server can be started with `node server.js` in the `dist` folder.
+
 ## Config
 
 The camera server can read a path to a config file from the `CONFIG_PATH` environment variable.
@@ -26,7 +34,7 @@ Below is a description of the config file's properties:
 
 ## Stdin-Interface
 
-The Nodejs server is controlled by PULT via its stdin. One could also implement the interface in any other program to manage the CVH-Camera.
+The camera server is controlled by PULT via its stdin. One could also implement the interface in any other program to manage the CVH-Camera.
 
 For the syntax of the commands the following convention is used in this documentation:
 
