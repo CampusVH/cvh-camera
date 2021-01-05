@@ -9,8 +9,6 @@ document.addEventListener('DOMContentLoaded', function() {
     var room = 1000;
     var source = {};
 
-    var passwordSubmitClicked = false;
-
     var passwordButton = document.getElementById('noVNC_password_button');
     var passwordInput = document.getElementById('noVNC_password_input');
     var currentPassword = '';
@@ -24,7 +22,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     passwordButton.onclick = function() {
         pin = currentPassword;
-        passwordSubmitClicked = true;
     };
 
     parseRoomFromURL();
@@ -63,8 +60,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Video element and vnc canvas must be mounted
             if (
                 janusInitialised &&
-                passwordSubmitClicked &&
-                document.querySelector('canvas') != null
+                document.querySelector('canvas') != null &&
+                document.documentElement.classList.contains('noVNC_connected')
             ) {
                 clearInterval(socketMountCheckInterval);
                 // Should only be triggered once, but the connect event
@@ -229,7 +226,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (passwordParam != null) {
             pin = passwordParam;
             console.log('pin = ' + pin);
-            passwordSubmitClicked = true;
         }
     }
 
