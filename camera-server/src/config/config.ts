@@ -4,6 +4,11 @@ import * as path from 'path';
 interface Config {
     port: number;
     cameraSlots: number;
+}
+
+// Required to access config with config[key]
+// But only an object of type Config should be returned
+interface IndexableConfig extends Config {
     // Change type once non-number values are added
     [key: string]: number;
 }
@@ -26,7 +31,7 @@ if (configPath) {
     console.log('Got not CONFIG_PATH environment variable');
 }
 
-const config: Config = {
+const indexableConfig: IndexableConfig = {
     port: 5000,
     cameraSlots: 4
 };
@@ -43,11 +48,11 @@ if (fileContent) {
         console.log(`Reading config at ${path.resolve(configPath!)}`);
         // Overwrite default values with values of read config
         Object.keys(readConfig).forEach((key) => {
-            if (config.hasOwnProperty(key)) {
-                const expectedType = typeof config[key];
+            if (indexableConfig.hasOwnProperty(key)) {
+                const expectedType = typeof indexableConfig[key];
                 const readType = typeof readConfig[key];
                 if (expectedType === readType) {
-                    config[key] = readConfig[key];
+                    indexableConfig[key] = readConfig[key];
                 } else {
                     console.log(
                         `Error: Read config propety '${key}' is of type ${readType}, but type ${expectedType} was expected`
@@ -65,6 +70,8 @@ if (fileContent) {
         );
     }
 }
+
+const config = indexableConfig as Config;
 
 console.log('Using config:', config);
 

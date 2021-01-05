@@ -1,11 +1,9 @@
-export interface CommandDescriptor {
-    command: string;
-    params: string[];
-}
+import { config } from '../config/config';
+import { CommandDescriptor } from '../models/command-descriptor';
 
 type NullableString = string | null;
 
-export class CameraSlotState {
+class SingleCameraSlotState {
     slotActive = false;
     token: NullableString = null;
     feedActive = false;
@@ -20,3 +18,11 @@ export class CameraSlotState {
         params: ['rb', '0', '0', '200', '200']
     };
 }
+
+const cameraSlotState: SingleCameraSlotState[] = [];
+
+for (let i = 0; i < config.cameraSlots; i++) {
+    cameraSlotState.push(new SingleCameraSlotState());
+}
+
+export { cameraSlotState };
