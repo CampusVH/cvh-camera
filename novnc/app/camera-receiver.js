@@ -408,36 +408,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function adjustVideoGeometry() {
         var canvas = document.querySelector('canvas');
-        var canvasRect = canvas.getBoundingClientRect();
-        var vncWidth = canvas.width;
-        var vncHeight = canvas.height;
-        var canvasWidth = canvasRect.width;
-        var canvasHeight = canvasRect.height;
-        var canvasX = canvasRect.x;
-        var canvasY = canvasRect.y
-        if (
-            vncWidth !== previousCanvasGeometryState.vncWidth ||
-            vncHeight !== previousCanvasGeometryState.vncHeight ||
-            canvasWidth !== previousCanvasGeometryState.canvasWidth ||
-            canvasHeight !== previousCanvasGeometryState.canvasHeight ||
-            canvasX !== previousCanvasGeometryState.canvasX ||
-            canvasY !== previousCanvasGeometryState.canvasY
-        ) {
-            Object.keys(videoGeometryParams).forEach(function(slot) {
-                if (videoActiveGeometry[slot] === 'set_geometry_relative_to_canvas') {
-                    var params = videoGeometryParams[slot];
-                    handleSetGeometryRelativeToCanvas(
-                        document.getElementById('camera-feed-' + slot),
-                        slot,
-                        params.origin,
-                        params.x,
-                        params.y,
-                        params.w,
-                        params.h,
-                        params.z
-                    );
-                }
-            });
+        if (canvas) {
+            var canvasRect = canvas.getBoundingClientRect();
+            var vncWidth = canvas.width;
+            var vncHeight = canvas.height;
+            var canvasWidth = canvasRect.width;
+            var canvasHeight = canvasRect.height;
+            var canvasX = canvasRect.x;
+            var canvasY = canvasRect.y
+            if (
+                vncWidth !== previousCanvasGeometryState.vncWidth ||
+                vncHeight !== previousCanvasGeometryState.vncHeight ||
+                canvasWidth !== previousCanvasGeometryState.canvasWidth ||
+                canvasHeight !== previousCanvasGeometryState.canvasHeight ||
+                canvasX !== previousCanvasGeometryState.canvasX ||
+                canvasY !== previousCanvasGeometryState.canvasY
+            ) {
+                Object.keys(videoGeometryParams).forEach(function(slot) {
+                    if (videoActiveGeometry[slot] === 'set_geometry_relative_to_canvas') {
+                        var params = videoGeometryParams[slot];
+                        handleSetGeometryRelativeToCanvas(
+                            document.getElementById('camera-feed-' + slot),
+                            slot,
+                            params.origin,
+                            params.x,
+                            params.y,
+                            params.w,
+                            params.h,
+                            params.z
+                        );
+                    }
+                });
+            }
+        } else {
+            console.error('adjustVideoGeometry canvas was null');
         }
     }
 });
