@@ -16,8 +16,11 @@ One can also refresh the token for a given slot or simply deactivate it.
 ## Compiling and Running the Server
 
 The camera server is written in typescript, a superset of javascript. That means that is has to be compiled before being able to start.
-To compile the code, install the typescript compiler using npm `npm install -g typescript` or apt `apt install node-typescript`.
-Navigate into the `camera-server` folder and run `tsc`. This will compile the files into a newly created folder `dist`.
+To compile the code, install all dependencies, including the typescript compiler.
+This can be done by running `npm install` in the `camera-server` folder.
+Then run `npm run build` in the same folder. This will compile the files into a newly created folder `dist`.
+
+If you want to compile the code into a single file, run `npm run build-single-file` instead.
 
 Once the code is compiled, the server can be started with `node server.js` in the `dist` folder.
 
