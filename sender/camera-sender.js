@@ -14,13 +14,15 @@ document.addEventListener('DOMContentLoaded', function() {
     var room = 1006;
     var slot = 0;
     var token = '';
+    var pin = '';
     var feedId = null;
 
     parseRoomFromURL();
     parseSlotFromURL();
+    parsePinFromURL();
     parseTokenFromURL();
 
-    roomIndicator.innerText = `VNC ${room - 1000} (Room ${room}) - Slot ${slot} - Token: ${token || '*none*'}`;
+    roomIndicator.innerText = `Channel ${room - 1000}, Camera ${slot + 1}`;
 
     const socketNumber = room + 4000;
     const socket = io('https://' + window.location.hostname, {
@@ -100,13 +102,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
                             startButton.onclick = function() {
                                 var resSelect = document.getElementById('res-select');
-                                var pinInput = document.getElementById('pin-input');
                                 startButton.setAttribute('disabled', '');
                                 resSelect.setAttribute('disabled', '');
                                 sendResolution = resSelect.value;
                                 Janus.log('sendResolution:', sendResolution);
-                                shareCamera(pinInput.value);
-                                pinInput.value = '';
+                                shareCamera(pin);
                             };
                             startButton.removeAttribute('disabled');
                         },
@@ -244,6 +244,16 @@ document.addEventListener('DOMContentLoaded', function() {
             slot = parseInt(slotParam);
         } else {
             console.log('Got no valid slot in URL search params, using default slot ' + slot);
+        }
+    }
+
+    function parsePinFromURL() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var pinParam = urlParams.get('pin');
+        if (pinParam != null) {
+            pin = pinParam;
+        } else {
+            console.log('Got no valid pin in URL search params');
         }
     }
 

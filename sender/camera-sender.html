@@ -12,23 +12,31 @@
         <div>
             Leave the pin empty if the rooms has none set.
         </div>
-        <select id="res-select">
-            <option value="lowres">320x240</option>
-            <option value="lowres-16:9">320x180</option>
-            <option value="stdres">640x480</option>
-            <option value="stdres-16:9">640x360</option>
-            <option value="hires-4:3">960x720</option>
-            <option value="hires-16:9">1280x720</option>
-        </select>
-        <input type="password" id="pin-input" placeholder="Room pin" />
-        <button id="start" disabled>Start</button>
-        <button id="stop" disabled>Stop</button>
-        <form id="bandwidth-form">
-            <label>A bandwidth cap can be set here. 0 or negative means no cap.</label>
-            <br />
-            <input type="text" id="bandwidth-input" placeholder="New bitrate [in kbit/s]" />
-            <input type="submit" id="bandwidth-submit" value="Change" disabled />
-        </form>
+        <p>
+            <select id="res-select">
+                <option value="lowres">320x240</option>
+                <option value="lowres-16:9">320x180</option>
+                <option value="stdres" selected>640x480</option>
+                <option value="stdres-16:9">640x360</option>
+                <option value="hires-4:3">960x720</option>
+                <option value="hires-16:9">1280x720</option>
+            </select>
+<!--
+            <input type="password" id="pin-input" placeholder="Room pin" />
+-->
+            <button id="start" disabled>Start</button>
+            <button id="stop" disabled>Stop</button>
+        </p>
+
+        <p>
+            <form id="bandwidth-form">
+                <label>While the camera is running, a bandwidth cap can be set here. 0 or negative means no cap.</label>
+                <br />
+                <input type="text" id="bandwidth-input" placeholder="New bitrate [in kbit/s]" />
+                <input type="submit" id="bandwidth-submit" value="Change" disabled />
+            </form>
+        </p>
+
         <div id="preview-container"></div>
     </body>
 </html>
