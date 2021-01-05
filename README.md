@@ -20,8 +20,6 @@ To compile the code, install all dependencies, including the typescript compiler
 This can be done by running `npm install` in the `camera-server` folder.
 Then run `npm run build` in the same folder. This will compile the files into a newly created folder `dist`.
 
-If you want to compile the code into a single file, run `npm run build-single-file` instead.
-
 Once the code is compiled, the server can be started with `node server.js` in the `dist` folder.
 
 ## Config

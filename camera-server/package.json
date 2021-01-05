@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "build": "npx tsc",
-    "build-single-file": "npx tsc -m amd --outfile dist/server.js"
+    "build": "npx tsc"
   },
   "dependencies": {
     "socket.io": "^3.0.4"
