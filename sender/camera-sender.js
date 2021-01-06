@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var slot = 0;
     var token = '';
     var pin = '';
+    var useUserPin = true;
     var feedId = null;
 
     parseRoomFromURL();
@@ -106,6 +107,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                 resSelect.setAttribute('disabled', '');
                                 sendResolution = resSelect.value;
                                 Janus.log('sendResolution:', sendResolution);
+                                if (useUserPin) {
+                                    pin = document.getElementById('pin-input').value;
+                                }
                                 shareCamera(pin);
                             };
                             startButton.removeAttribute('disabled');
@@ -251,7 +255,14 @@ document.addEventListener('DOMContentLoaded', function() {
         var urlParams = new URLSearchParams(window.location.search);
         var pinParam = urlParams.get('pin');
         if (pinParam != null) {
+            useUserPin = false;
             pin = pinParam;
+            // Providing a pin value of 'none' sets the pin explictly to ''
+            if (pin === 'none') {
+                pin = '';
+            }
+            document.getElementById('pin-input').remove();
+            document.getElementById('pin-hint').remove();
         } else {
             console.log('Got no valid pin in URL search params');
         }
