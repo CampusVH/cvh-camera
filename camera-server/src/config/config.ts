@@ -4,13 +4,13 @@ import * as path from 'path';
 interface Config {
     port: number;
     cameraSlots: number;
+    notifyPath: string;
 }
 
 // Required to access config with config[key]
 // But only an object of type Config should be returned
 interface IndexableConfig extends Config {
-    // Change type once non-number values are added
-    [key: string]: number;
+    [key: string]: number | string;
 }
 
 let configPath = process.env.CONFIG_PATH;
@@ -22,7 +22,7 @@ if (configPath) {
         fileContent = fs.readFileSync(configPath).toString();
     } catch (err) {
         console.log(
-            `Could not read config at ${path.resolve(configPath)}:`,
+            `Error: Could not read config at ${path.resolve(configPath)}:`,
             err
         );
         console.log('Using default values');
@@ -33,7 +33,8 @@ if (configPath) {
 
 const indexableConfig: IndexableConfig = {
     port: 5000,
-    cameraSlots: 4
+    cameraSlots: 4,
+    notifyPath: ''
 };
 
 if (fileContent) {
@@ -59,12 +60,12 @@ if (fileContent) {
                     );
                 }
             } else {
-                console.log(`Unknown property ${key} in config`);
+                console.log(`Error: Unknown property ${key} in config`);
             }
         });
     } else {
         console.log(
-            `Config at ${path.resolve(
+            `Error: Config at ${path.resolve(
                 configPath!
             )} is malformed - using default values`
         );
@@ -72,6 +73,12 @@ if (fileContent) {
 }
 
 const config = indexableConfig as Config;
+if (config.notifyPath && !path.isAbsolute(config.notifyPath) && configPath) {
+    config.notifyPath = path.resolve(
+        path.dirname(configPath),
+        config.notifyPath
+    );
+}
 
 console.log('Using config:', config);
 

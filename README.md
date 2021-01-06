@@ -33,6 +33,12 @@ Below is a description of the config file's properties:
 
 * `cameraSlots`: The camera slots available for this room. Defaults to `4`.
 
+* `notifyPath`: A path to a file which the camera server will append messages to.
+  This is used to notify the controller (usually PULT).
+  The path can either be absolute or relative to the config file but must not start with a tilde.
+
+  If this property is emitted or an empty string is provided, the notify feature will not be used.
+
 ## Stdin-Interface
 
 The camera server is controlled by PULT via its stdin. One could also implement the interface in any other program to manage the CVH-Camera.
@@ -67,6 +73,20 @@ The current state of the camera feeds is saved in the server's memory and will b
 | `set_geometry_relative_to_window` | Sets the geometry of the feed on the slot relative to the window of the viewer. <br/> Note that this can cause unwanted behavior. The feeds might look positioned well on your screen, but poorly positioned on a screen with a different size. `set_geometry_relative_to_canvas` should be used in most cases, because its pixel values are relative to the size of the transmitted VNC feed. <br/><br/> **Usage**: `set_geometry_relative_to_window <slot> <l \| r><t \| b> <x_offset> <y_offset> <width> <height> [z-index]`. <br/><br/> The parameters work the same way as described in the description of `set_geometry_relative_to_canvas`.
 | `hide`                            | Hides the feed of the provided slot. <br/> Note that the feed will still be transmitted to the viewer but is just hidden. By doing that, the feed can be shown again with a very low latency. <br/><br/> **Usage**: `hide <slot>`
 | `show`                            | Shows the feed of the provided slot in case it was hidden. <br/><br/> **Usage**: `show <slot>`
+
+## Notify-Interface
+
+The camera server can notify its controller (usually PULT) by writing to a file which is provided in the config.
+The controller can then read the file and process the messages.
+
+In the case of PULT this file is a named pipe (mkfifo), which works perfectly fine.
+
+This is a list of all sent messages. Note that a newline character `\n` is appended to every message.
+
+| Message                            | Description
+| ---------------------------------- | -----------
+| `new_feed <slot>`                  | Sent after a sender on a slot has started transmitting a feed.
+| `remove_feed <slot>`               | Sent after a sender on a slot has stopped transmitting a feed or the slot is deactivated (which also removes the feed).
 
 ## Socket Traffic
 

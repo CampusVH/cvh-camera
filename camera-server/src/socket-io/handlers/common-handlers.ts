@@ -1,19 +1,25 @@
 import { socketIO } from '../socket-io';
 import { cameraSlotState } from '../../state/camera-slot-state';
 import { CommandDescriptor } from '../../models/command-descriptor';
+import {
+    notifyNewFeed,
+    notifyRemoveFeed
+} from '../../io-interface/handlers/output-handlers';
 
 export const emitNewFeed = (slot: number) => {
-    const cameraState = cameraSlotState[slot];
+    const slotState = cameraSlotState[slot];
     socketIO.emit('new_feed', {
         slot,
-        feedId: cameraState.feedId,
-        visibility: cameraState.visibility,
-        geometry: cameraState.geometry
+        feedId: slotState.feedId,
+        visibility: slotState.visibility,
+        geometry: slotState.geometry
     });
+    notifyNewFeed(slot);
 };
 
 export const emitRemoveFeed = (slot: number) => {
     socketIO.emit('remove_feed', { slot });
+    notifyRemoveFeed(slot);
 };
 
 export const handleQueryState = (fn: Function) => {
@@ -26,12 +32,12 @@ export const handleQueryState = (fn: Function) => {
         };
     } = {};
     for (let i = 0; i < cameraSlotState.length; i++) {
-        const cameraState = cameraSlotState[i];
-        if (cameraState.feedActive) {
+        const slotState = cameraSlotState[i];
+        if (slotState.feedActive) {
             response[i] = {
-                feedId: cameraState.feedId,
-                visibility: cameraState.visibility,
-                geometry: cameraState.geometry
+                feedId: slotState.feedId,
+                visibility: slotState.visibility,
+                geometry: slotState.geometry
             };
         }
     }

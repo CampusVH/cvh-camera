@@ -1,19 +1,29 @@
 import { socketIO } from '../socket-io/socket-io';
+import { isBlocking } from '../io-interface/handlers/output-handlers';
 
 interface ExitHandlerOptions {
     cleanup?: boolean;
     exit?: boolean;
 }
 
-const cleanup = () => {
-    console.log('cleanup');
-    socketIO.emit('remove_all_feeds');
-};
-
-const exitHandler = (options: ExitHandlerOptions, exitCode: number) => {
-    if (options.cleanup) cleanup();
-    if (exitCode || exitCode === 0) console.log(exitCode);
-    if (options.exit) process.exit();
+const exitHandler = (
+    options: ExitHandlerOptions,
+    exitCode: string | number
+) => {
+    if (options.cleanup) {
+        console.log('cleanup');
+        socketIO.emit('remove_all_feeds');
+    }
+    if (exitCode || exitCode === 0) {
+        console.log('Exit code:', exitCode);
+        if (exitCode === 0 && isBlocking()) {
+            console.log('Aborting process due to blocking file append');
+            process.abort();
+        }
+    }
+    if (options.exit) {
+        process.exit();
+    }
 };
 
 export const registerCleanupLogic = () => {
