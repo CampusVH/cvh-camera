@@ -2,10 +2,11 @@ import { cameraSlotState } from '../../state/camera-slot-state';
 import { emitNewFeed, emitRemoveFeed } from './common-handlers';
 import { SenderSocket } from '../../models/sender-socket';
 import { ValidationError } from '../../models/validation-error';
+import { notifyCustomName } from '../../io-interface/handlers/output-handlers';
 
 const handleSetFeedId = (
     socket: SenderSocket,
-    data: null | { feedId?: string },
+    data: null | { feedId?: string; customName?: string },
     fn: Function
 ) => {
     let success = true;
@@ -54,6 +55,26 @@ const handleSetFeedId = (
                 'Error: Got set_feed_id event without a feed id on slot ' + slot
             );
             throw new ValidationError('No feed id was provided');
+        }
+
+        const unescapedCustomName = data.customName;
+        if (unescapedCustomName != null) {
+            console.log(
+                `Got custom name from slot ${slot}: ${unescapedCustomName}`
+            );
+            const customName = unescapedCustomName
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+            if (unescapedCustomName !== customName) {
+                console.log(
+                    `Warning: Escaped custom name (${customName}) does not equal the unescaped custom name` +
+                        `(${unescapedCustomName}) on slot ${slot} - this could mean that the user tried a Cross-Site-Scripting (XSS) attack`
+                );
+            }
+            notifyCustomName(slot, customName);
         }
 
         console.log('Setting feed id of slot ' + slot + ' to ' + feedId);

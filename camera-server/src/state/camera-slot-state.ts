@@ -9,6 +9,7 @@ class SingleCameraSlotState {
     feedActive = false;
     feedId: NullableString = null;
     senderSocketId: NullableString = null;
+    annotation: NullableString = null;
     visibility: CommandDescriptor = {
         command: 'show',
         params: []

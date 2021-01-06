@@ -12,7 +12,8 @@ export const emitNewFeed = (slot: number) => {
         slot,
         feedId: slotState.feedId,
         visibility: slotState.visibility,
-        geometry: slotState.geometry
+        geometry: slotState.geometry,
+        annotation: slotState.annotation
     });
     notifyNewFeed(slot);
 };
@@ -22,6 +23,14 @@ export const emitRemoveFeed = (slot: number) => {
     notifyRemoveFeed(slot);
 };
 
+export const emitSetAnnotation = (slot: number, annotation: string) => {
+    socketIO.emit('set_annotation', { slot, annotation });
+};
+
+export const emitRemoveAnnotation = (slot: number) => {
+    socketIO.emit('remove_annotation', { slot });
+};
+
 export const handleQueryState = (fn: Function) => {
     console.log('Got state query from socket');
     let response: {
@@ -29,6 +38,7 @@ export const handleQueryState = (fn: Function) => {
             feedId: string | null;
             visibility: CommandDescriptor;
             geometry: CommandDescriptor;
+            annotation: string | null;
         };
     } = {};
     for (let i = 0; i < cameraSlotState.length; i++) {
@@ -37,7 +47,8 @@ export const handleQueryState = (fn: Function) => {
             response[i] = {
                 feedId: slotState.feedId,
                 visibility: slotState.visibility,
-                geometry: slotState.geometry
+                geometry: slotState.geometry,
+                annotation: slotState.annotation
             };
         }
     }

@@ -53,3 +53,7 @@ export const notifyNewFeed = (slot: number) => {
 export const notifyRemoveFeed = (slot: number) => {
     notifyController(`remove_feed ${slot}`);
 };
+
+export const notifyCustomName = (slot: number, name: string) => {
+    notifyController(`custom_name ${slot} ${name}`);
+};

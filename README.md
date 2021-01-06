@@ -6,6 +6,30 @@ Note that the project and its documentation are still in development.
 
 In this documentation clients that publish a feed will be referred to as *senders* and clients who receive a feed will be referred to as *receivers* or *viewers*.
 
+# Sender Web Page
+
+CVH-Camera provides a web page with which users can transmit camera feeds.
+
+## Query Parameters
+
+The behavior of the sender page can be controlled using its query parameters.
+
+Providing query parameters can be done by appending a question mark to the url, followed by key-value pairs which are divided by and symbols.
+Example: `http://www.mywebpage.com/somePage.html?param1=value1&param2=value2`. In the example the parameters `param1` and `param2` are provided
+with the values `value1` and `value2`.
+
+The following list explains the usage of the parameters:
+
+* `room`: The number of the janus room. Defaults to `1000`.
+
+* `slot`: The camera slot used in the room. Defaults to `0`.
+
+* `token`: The token required for authentication on the camera server (see below). Defaults to an empty string, which will yield to the user not being able to transmit his camera feed.
+
+* `pin` *optional*: The pin for the janus room. If the janus room has no pin, provide the value `none`. If this parameter is not provided, an input field for the pin is shown.
+
+* `customNameAllowed` *optional*: If this parameter is present (even when holding no value), an input field for a custom name is shown. This name is then required to start the transmission.
+
 # Camera Server
 
 CVH-Camera uses a Nodejs server with the socket.io library to send events regarding the camera feeds out to the receivers in realtime. The socket connection is also used to verify feeds that are published in the Janus rooms and only send those to the receivers. This way no unwanted feeds can be shown to the receivers while still having a public password for the Janus room itself.
@@ -57,9 +81,11 @@ This is the list of the available commands:
 
 | Command                           | Description
 | --------------------------------- | -----------
-| `activate_slot`                   | Activates a slot and sets its token. To set a new token use `refresh_token`. <br/><br/> **Usage**: `activate_slot <slot> <token>`
+| `activate_slot`                   | Activates a slot and sets its token. To set a new token use `refresh_token`. <br/><br/> **Usage**: `activate_slot <slot> <token> [annotation]` <br/><br/> See `set_annotation` for an explanation of the annotation.
 | `refresh_token`                   | Sets a new token for a slot. <br/><br/> **Usage**: `refresh_token <slot> <new_token>`
 | `deactivate_slot`                 | Deactivates a slot. Also ensures that the feed is removed for the receivers. <br/><br/> **Usage**: `deactivate_slot <slot>`
+| `set_annotation`                  | Sets the annotation of a slot. A simple use case would be displaying the user's name below his feed. <br/><br/> **Usage**: `set_annotation <slot> <annotation>` <br/><br/> `annotation` can be any HTML snippet which will annotate the camera feed of the slot. This is done by appending the snippet to the container which contains the video element of the feed. <br/> If this example snippet is provided, the text *Hello noVNC* will be displayed at the bottom of the feed container: `<div style="box-sizing: border-box; position: absolute; bottom: 0; width: 100%; background: rgba(0, 0, 0, 0.75); color: white; text-align: center; padding: 4px;">Hello noVNC</div>`. <br/><br/> **Important**: The HTML snippet has to have only one parent element. The container uses the CSS declaration `position: fixed`. Thus, working with `position: absolute` is possible and definitely advised. 
+| `remove_annotation`               | Removes the annotation of a slot. <br/><br/> **Usage**: `remove_annotation <slot>`
 
 ### Camera Control Commands
 
@@ -87,6 +113,7 @@ This is a list of all sent messages. Note that a newline character `\n` is appen
 | ---------------------------------- | -----------
 | `new_feed <slot>`                  | Sent after a sender on a slot has started transmitting a feed.
 | `remove_feed <slot>`               | Sent after a sender on a slot has stopped transmitting a feed or the slot is deactivated (which also removes the feed).
+| `custom_name <slot> <custom_name>` | Sent after a sender on a slot has started transmitting a feed and has set a custom name. The name is a string which is guaranteed to be escaped to prevent Cross-Site-Scripting (XSS) attacks. Note that the name can contain spaces. <br/> The controller should wrap the name into a HTML snippet and send it back to the camera server using the `set_annotation` command.
 
 ## Socket Traffic
 

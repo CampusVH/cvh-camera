@@ -6,25 +6,45 @@
         <script type="text/javascript" src="socket.io.min.js"></script>
         <script type="text/javascript" src="camera-sender.js"></script>
         <link rel="stylesheet" href="camera-sender.css">
+        <style>
+            /* temporary */
+            div {
+                margin-bottom: 8px;
+            }
+        </style>
     </head>
     <body>
         <h3 id="room-indicator"></h3>
+
         <div id="pin-hint">
             Leave the pin empty if the rooms has none set.
         </div>
-        <p>
-            <select id="res-select">
-                <option value="lowres">320x240</option>
-                <option value="lowres-16:9">320x180</option>
-                <option value="stdres" selected>640x480</option>
-                <option value="stdres-16:9">640x360</option>
-                <option value="hires-4:3">960x720</option>
-                <option value="hires-16:9">1280x720</option>
-            </select>
-            <input type="password" id="pin-input" placeholder="Room pin" />
-            <button id="start" disabled>Start</button>
-            <button id="stop" disabled>Stop</button>
-        </p>
+
+        <form id="room-form">
+            <div>
+                <select id="res-select">
+                    <option value="lowres">320x240</option>
+                    <option value="lowres-16:9">320x180</option>
+                    <option value="stdres" selected>640x480</option>
+                    <option value="stdres-16:9">640x360</option>
+                    <option value="hires-4:3">960x720</option>
+                    <option value="hires-16:9">1280x720</option>
+                </select>
+            </div>
+
+            <div id="name-container">
+                <input required type="text" id="name-input" placeholder="Display name" />
+            </div>
+
+            <div id="pin-container">
+                <input type="password" id="pin-input" placeholder="Room pin" />
+            </div>
+
+            <div>
+                <button type="submit" id="start" disabled>Start</button>
+                <button id="stop" disabled>Stop</button>
+            </div>
+        </form>
 
         <p>
             <form id="bandwidth-form">

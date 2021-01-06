@@ -1,14 +1,8 @@
-.camera-feed.hidden {
-	display: none;
-}
-
-.camera-feed.visually-hidden {
+.camera-feed-container.visually-hidden {
 	visibility: hidden;
 }
 
-.camera-feed.fullscreen {
-	max-width: none;
-	max-height: none;
-	width: 100%;
-	height: 100%;
+.camera-feed {
+    width: 100%;
+    height: 100%;
 }

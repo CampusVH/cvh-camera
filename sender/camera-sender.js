@@ -5,23 +5,26 @@ document.addEventListener('DOMContentLoaded', function() {
     var videoroomHandle = null;
     var sendResolution = 'stdres';
 
+    var roomForm = document.getElementById('room-form');
     var startButton = document.getElementById('start');
     var stopButton = document.getElementById('stop');
     var roomIndicator = document.getElementById('room-indicator');
 
     var gotSocketInitResponse = false;
     var transmitting = false;
-    var room = 1006;
+    var room = 1000;
     var slot = 0;
     var token = '';
     var pin = '';
     var useUserPin = true;
+    var customNameAllowed = false;
     var feedId = null;
 
     parseRoomFromURL();
     parseSlotFromURL();
     parsePinFromURL();
     parseTokenFromURL();
+    parseCustomNameAllowed();
 
     roomIndicator.innerText = `Channel ${room - 1000}, Camera ${slot + 1}`;
 
@@ -101,7 +104,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             videoroomHandle = pluginHandle;
                             Janus.log('Plugin attached! (' + videoroomHandle.getPlugin() + ', id=' + videoroomHandle.getId() + ')');    
 
-                            startButton.onclick = function() {
+                            roomForm.onsubmit = function(event) {
+                                event.preventDefault();
                                 var resSelect = document.getElementById('res-select');
                                 startButton.setAttribute('disabled', '');
                                 resSelect.setAttribute('disabled', '');
@@ -120,7 +124,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         },
                         webrtcState: function(on) {
                             if (on) {
-                                socket.emit('set_feed_id', { feedId }, handleSetFeedIdResponse);
+                                var data = { feedId };
+                                if (customNameAllowed) {
+                                    data.customName = document.getElementById('name-input').value;
+                                }
+                                socket.emit('set_feed_id', data, handleSetFeedIdResponse);
                                 // Sharing camera successful, when the set_feed_id request is successful
                             } else {
                                 janus.destroy();
@@ -138,11 +146,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                     video.classList.add('visually-hidden');
                                 }
                                 document.getElementById('preview-container').appendChild(video);
-
-                                // var noVncLink = 'https://simon-doering.com/novnc/vnc.html?room=' + room;
-                                // var linkContainer = document.createElement('div');
-                                // linkContainer.innerHTML = `Camera feed can be viewed in noVNC at this link by clicking the connect button: <a href=${noVncLink}>${noVncLink}</a>`;
-                                // document.body.appendChild(linkContainer);
                             }
                             Janus.attachMediaStream(document.getElementById('camera-preview'), stream);
                         }
@@ -261,7 +264,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (pin === 'none') {
                 pin = '';
             }
-            document.getElementById('pin-input').remove();
+            document.getElementById('pin-container').remove();
             document.getElementById('pin-hint').remove();
         } else {
             console.log('Got no valid pin in URL search params');
@@ -276,7 +279,15 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             console.log('Got no valid token in URL search params, using default token ' + token);
         }
+    }
 
+    function parseCustomNameAllowed() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var param = urlParams.get('customNameAllowed');
+        customNameAllowed = param != null;
+        if (!customNameAllowed) {
+            document.getElementById('name-container').remove();
+        }
     }
 }, false);
 

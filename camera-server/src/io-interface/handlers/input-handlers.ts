@@ -1,13 +1,31 @@
 import { socketIO } from '../../socket-io/socket-io';
 import { cameraSlotState } from '../../state/camera-slot-state';
-import { emitRemoveFeed } from '../../socket-io/handlers/common-handlers';
+import {
+    emitRemoveFeed,
+    emitSetAnnotation,
+    emitRemoveAnnotation
+} from '../../socket-io/handlers/common-handlers';
 
 const visibilityCommands = ['hide', 'show'];
 const geometryCommands = [
     'set_geometry_relative_to_window',
     'set_geometry_relative_to_canvas'
 ];
-const internalCommands = ['activate_slot', 'deactivate_slot', 'refresh_token'];
+const internalCommands = [
+    'activate_slot',
+    'deactivate_slot',
+    'refresh_token',
+    'set_annotation',
+    'remove_annotation'
+];
+
+const setAnnotation = (slot: number, annotation: string) => {
+    console.log(`Setting annotation of slot ${slot} to ${annotation}`);
+    cameraSlotState[slot].annotation = annotation;
+    if (cameraSlotState[slot].feedActive) {
+        emitSetAnnotation(slot, annotation);
+    }
+};
 
 const handleInternalCommand = (
     command: string,
@@ -29,7 +47,10 @@ const handleInternalCommand = (
                 );
                 return;
             }
-            currentCameraState.token = params[0];
+            currentCameraState.token = params.shift()!;
+            if (params.length > 0) {
+                setAnnotation(slot, params.join(' '));
+            }
             currentCameraState.slotActive = true;
             break;
         case 'deactivate_slot':
@@ -45,6 +66,7 @@ const handleInternalCommand = (
             currentCameraState.feedActive = false;
             currentCameraState.feedId = null;
             currentCameraState.senderSocketId = null;
+            currentCameraState.annotation = null;
             break;
         case 'refresh_token':
             if (!currentCameraState.slotActive) {
@@ -64,6 +86,22 @@ const handleInternalCommand = (
             }
             console.log('Refreshing token for slot ' + slot);
             currentCameraState.token = params[0];
+            break;
+        case 'set_annotation':
+            if (params.length === 0) {
+                console.log(
+                    'Error: Tried to set annotation without providing one'
+                );
+                return;
+            }
+            setAnnotation(slot, params.join(' '));
+            break;
+        case 'remove_annotation':
+            console.log(`Removing annotation for slot ${slot}`);
+            currentCameraState.annotation = null;
+            if (currentCameraState.feedActive) {
+                emitRemoveAnnotation(slot);
+            }
             break;
         default:
             console.log(

@@ -83,7 +83,8 @@ document.addEventListener('DOMContentLoaded', function() {
             var state = cameraStates[slot];
             newRemoteFeed(slot, state.feedId, {
                 geometry: state.geometry, 
-                visibility: state.visibility
+                visibility: state.visibility,
+                annotation: state.annotation
             });
         });
     }
@@ -111,12 +112,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }});
 
+    function getVideoContainer(slot) {
+        return document.getElementById(`camera-feed-${slot}-container`);
+    }
+
     function removeRemoteFeed(slot) {
         delete videoActiveGeometry[slot];
         delete videoGeometryParams[slot];
         delete source[slot];
-        var video = document.getElementById('camera-feed-' + slot);
-        video.remove();
+        var videoContainer = getVideoContainer(slot);
+        videoContainer.remove();
         janusPluginHandles[slot].detach();
         delete janusPluginHandles[slot];
     }
@@ -127,6 +132,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         var video = document.getElementById(cameraElementId);
         if (video == null) {
+            var videoContainer = document.createElement('div');
+            videoContainer.setAttribute('id', cameraElementId + '-container');
+            videoContainer.classList.add('camera-feed-container');
+
             video = document.createElement('video');
             video.setAttribute('id', cameraElementId);
             video.setAttribute('muted', '');
@@ -138,7 +147,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 video.play();
             }
             video.classList.add('camera-feed');
-            document.body.appendChild(video);
+
+            document.body.appendChild(videoContainer);
+            videoContainer.appendChild(video);
         }
 
         var remoteFeedHandle = null;
@@ -173,9 +184,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        
         handleCommand(slot, initialState.geometry.command, initialState.geometry.params);
         handleCommand(slot, initialState.visibility.command, initialState.visibility.params);
+        if (initialState.annotation) {
+            setAnnotation(slot, initialState.annotation);
+        }
     }
 
     function handleMessageSubscriber(slot, msg, jsep) {
@@ -250,7 +263,8 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('new_feed', data);
             newRemoteFeed(data.slot, data.feedId, {
                 geometry: data.geometry,
-                visibility: data.visibility
+                visibility: data.visibility,
+                annotation: data.annotation
             });
         });
 
@@ -264,15 +278,60 @@ document.addEventListener('DOMContentLoaded', function() {
                 removeRemoteFeed(slot);
             });
         });
+
+        socket.on('set_annotation', function(data) {
+            console.log('set_annotation', data);
+            setAnnotation(data.slot, data.annotation);
+        });
+
+        socket.on('remove_annotation', function(data) {
+            console.log('remove_annotation', data);
+            removeAnnotation(data.slot);
+        });
+    }
+
+    function setAnnotation(slot, annotationHtml) {
+        var videoContainer = getVideoContainer(slot);
+
+        if (videoContainer) {
+            var template = document.createElement('template');
+            template.innerHTML = annotationHtml.trim();
+            var annotationEl = template.content.firstChild;
+            if (annotationEl && annotationEl.classList) {
+                annotationEl.classList.add('annotation');
+                var prevAnnotation = videoContainer.querySelector('.annotation');
+                if (prevAnnotation) {
+                    prevAnnotation.remove();
+                }
+                videoContainer.appendChild(annotationEl);
+            } else {
+                console.error(`setAnnotation called for slot ${slot} with invalid HTML ${annotationHtml}`);
+            }
+        } else {
+            console.error(`setAnnotation called for slot ${slot} which has no video container`);
+        }
+    }
+
+    function removeAnnotation(slot) {
+        var videoContainer = getVideoContainer(slot);
+
+        if (videoContainer) {
+            var annotationEl = videoContainer.querySelector('.annotation');
+            if (annotationEl) {
+                annotationEl.remove();
+            }
+        } else {
+            console.error(`removeAnnotation called for slot ${slot} which has no video container`);
+        }
     }
 
     function handleCommand(slot, command, params) {
         console.log('Got command:', command);
         console.log('For slot:', slot);
         console.log('With params:', params);
-        var video = document.getElementById('camera-feed-' + slot);
-        if (video == null) {
-            console.log('handleCommand video element is null');
+        var videoContainer = getVideoContainer(slot);
+        if (videoContainer == null) {
+            console.log('handleCommand videoContainer element is null');
         }
         switch(command) {
             case 'set_geometry_relative_to_window':
@@ -286,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     z += parseInt(params[5]);
                 }
 
-                setFixedPosition(video, origin, x, y, w, h, z);
+                setFixedPosition(videoContainer, origin, x, y, w, h, z);
                 videoGeometryParams[slot] = { origin, x, y, w, h, z };
                 videoActiveGeometry[slot] = command;
 
@@ -302,14 +361,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     z += parseInt(params[5]);
                 }
 
-                handleSetGeometryRelativeToCanvas(video, slot, origin, x, y, w, h, z);
+                handleSetGeometryRelativeToCanvas(videoContainer, slot, origin, x, y, w, h, z);
 
                 break;
             case 'show':
-                video.classList.remove('visually-hidden');
+                videoContainer.classList.remove('visually-hidden');
                 break;
             case 'hide':
-                video.classList.add('visually-hidden');
+                videoContainer.classList.add('visually-hidden');
                 break;
             default:
                 console.log(`Socket got unknown command '${command}'`);
@@ -317,7 +376,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function handleSetGeometryRelativeToCanvas(video, slot, origin, x, y, w, h, z) {
+    function handleSetGeometryRelativeToCanvas(videoContainer, slot, origin, x, y, w, h, z) {
         // Site contains only one canvas - the vnc viewer
         var canvas = document.querySelector('canvas');
         videoGeometryParams[slot] = { origin, x, y, w, h, z };
@@ -360,7 +419,7 @@ document.addEventListener('DOMContentLoaded', function() {
             y += (canvasRect.bottom - canvasRect.height);
         }
 
-        setFixedPosition(video, origin, x, y, w, h, z);
+        setFixedPosition(videoContainer, origin, x, y, w, h, z);
         videoActiveGeometry[slot] = 'set_geometry_relative_to_canvas';
         previousCanvasGeometryState = {
             vncWidth,
@@ -372,7 +431,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    function setFixedPosition(video, origin, x, y, w, h, z) {
+    function setFixedPosition(videoContainer, origin, x, y, w, h, z) {
         var style = ( 
             'position: fixed;' +
             `width: ${w}px;` +
@@ -399,7 +458,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        video.setAttribute('style', style);
+        videoContainer.setAttribute('style', style);
     }
 
     function adjustVideoGeometry() {
@@ -424,7 +483,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (videoActiveGeometry[slot] === 'set_geometry_relative_to_canvas') {
                         var params = videoGeometryParams[slot];
                         handleSetGeometryRelativeToCanvas(
-                            document.getElementById('camera-feed-' + slot),
+                            getVideoContainer(slot),
                             slot,
                             params.origin,
                             params.x,
