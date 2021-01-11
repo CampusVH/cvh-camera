@@ -121,9 +121,17 @@ document.addEventListener('DOMContentLoaded', function() {
         delete videoGeometryParams[slot];
         delete source[slot];
         var videoContainer = getVideoContainer(slot);
-        videoContainer.remove();
-        janusPluginHandles[slot].detach();
-        delete janusPluginHandles[slot];
+        if (videoContainer) {
+            videoContainer.remove();
+        } else {
+            console.error(`Tried to remove video container for slot ${slot} that is not mounted`);
+        }
+        if (janusPluginHandles[slot]) {
+            janusPluginHandles[slot].detach();
+            delete janusPluginHandles[slot];
+        } else {
+            console.error(`Tried to remove janus plugin handle for slot ${slot}`);
+        }
     }
 
     function newRemoteFeed(slot, feedId, initialState) {
@@ -299,9 +307,9 @@ document.addEventListener('DOMContentLoaded', function() {
             var annotationEl = template.content.firstChild;
             if (annotationEl && annotationEl.classList) {
                 annotationEl.classList.add('annotation');
-                var prevAnnotation = videoContainer.querySelector('.annotation');
-                if (prevAnnotation) {
-                    prevAnnotation.remove();
+                var prevAnnotationEl = videoContainer.querySelector('.annotation');
+                if (prevAnnotationEl) {
+                    prevAnnotationEl.remove();
                 }
                 videoContainer.appendChild(annotationEl);
             } else {
