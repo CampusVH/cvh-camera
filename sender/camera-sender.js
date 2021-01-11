@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', function() {
     var roomForm = document.getElementById('room-form');
     var startButton = document.getElementById('start');
     var stopButton = document.getElementById('stop');
-    var roomIndicator = document.getElementById('room-indicator');
 
     var gotSocketInitResponse = false;
     var transmitting = false;
@@ -26,12 +25,17 @@ document.addEventListener('DOMContentLoaded', function() {
     parseTokenFromURL();
     parseCustomNameAllowed();
 
-    roomIndicator.innerText = `Channel ${room - 1000}, Camera ${slot + 1}`;
+    document.getElementById('room').innerText = room - 1000;
+    document.getElementById('slot').innerText = slot + 1;
 
     const socketNumber = room + 4000;
     const socket = io('https://' + window.location.hostname, {
         path: '/socket.io/' + socketNumber
     });
+
+    document.getElementById('options-toggle').onclick = function () {
+        document.getElementById('options').classList.toggle('options__body--hidden');
+    };
 
     registerSocketHandlers();
 

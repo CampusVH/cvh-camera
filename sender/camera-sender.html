@@ -1,60 +1,75 @@
 <html>
     <head>
         <title>Camera Sender</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script type="text/javascript" src="adapter.min.js"></script>
         <script type="text/javascript" src="janus.js"></script>
         <script type="text/javascript" src="socket.io.min.js"></script>
         <script type="text/javascript" src="camera-sender.js"></script>
         <link rel="stylesheet" href="camera-sender.css">
-        <style>
-            /* temporary */
-            div {
-                margin-bottom: 8px;
-            }
-        </style>
     </head>
     <body>
-        <h3 id="room-indicator"></h3>
+        <main class="main">
+            <header class="main__header">
+                <h3 id="room-indicator" class="main__header-title">
+                    Channel&nbsp;<span id="room"></span> &bull; Camera&nbsp;<span id="slot"></span>
+                </h3>
+            </header>
 
-        <div id="pin-hint">
-            Leave the pin empty if the rooms has none set.
-        </div>
+            <hr class="main__seperator" />
 
-        <form id="room-form">
-            <div>
-                <select id="res-select">
-                    <option value="lowres">320x240</option>
-                    <option value="lowres-16:9">320x180</option>
-                    <option value="stdres" selected>640x480</option>
-                    <option value="stdres-16:9">640x360</option>
-                    <option value="hires-4:3">960x720</option>
-                    <option value="hires-16:9">1280x720</option>
-                </select>
+            <div id="connection-status">Connected</div>
+
+            <div id="spinner" class="spinner-wrapper">
+                <div class="spinner"></div>
             </div>
 
-            <div id="name-container">
-                <input required type="text" id="name-input" placeholder="Display name" />
-            </div>
+            <form id="room-form" class="main__room-form">
+                <div class="form-control">
+                    <label class="form-control__label" for="res-select">Resolution</label>
+                    <select id="res-select" class="form-control__input">
+                        <option value="lowres">320x240</option>
+                        <option value="lowres-16:9">320x180</option>
+                        <option value="stdres" selected>640x480</option>
+                        <option value="stdres-16:9">640x360</option>
+                        <option value="hires-4:3">960x720</option>
+                        <option value="hires-16:9">1280x720</option>
+                    </select>
+                </div>
 
-            <div id="pin-container">
-                <input type="password" id="pin-input" placeholder="Room pin" />
-            </div>
+                <div id="name-control" class="form-control">
+                    <label class="form-control__label" for="name-input">Display name</label>
+                    <input id="name-input" class="form-control__input" required type="text" />
+                </div>
 
-            <div>
-                <button type="submit" id="start" disabled>Start</button>
-                <button id="stop" disabled>Stop</button>
-            </div>
-        </form>
-
-        <p>
-            <form id="bandwidth-form">
-                <label>While the camera is running, a bandwidth cap can be set here. 0 or negative means no cap.</label>
-                <br />
-                <input type="text" id="bandwidth-input" placeholder="New bitrate [in kbit/s]" />
-                <input type="submit" id="bandwidth-submit" value="Change" disabled />
+                <div id="pin-control" class="form-control">
+                    <label class="form-control__label" for="pin-input">Room PIN</label>
+                    <input id="pin-input" class="form-control__input" type="password" placeholder="Leave empty if none" />
+                </div>
             </form>
-        </p>
 
-        <div id="preview-container"></div>
+            <div id="preview-container">Preview</div>
+
+            <section class="main__options">
+                <div class="options__toggle-wrapper">
+                    <div id="options-toggle" class="options__toggle">Advanced options</div>
+                </div>
+                <div id="options" class="options__body options__body--hidden">
+                    <form id="bandwidth-form">
+                        <label>While the camera is running, a bandwidth cap can be set here. 0 or negative means no cap.</label>
+                        <br />
+                        <input type="text" id="bandwidth-input" placeholder="New bitrate [in kbit/s]" />
+                        <input type="submit" id="bandwidth-submit" value="Change" disabled />
+                    </form>
+                </div>
+            </section>
+
+            <hr class="main__seperator" />
+
+            <div class="main__controls">
+                <button id="start" class="main__control-button" type="submit" disabled>Start</button>
+                <button id="stop" class="main__control-button" disabled>Stop</button>
+            </div>
+        </main>
     </body>
 </html>

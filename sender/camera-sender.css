@@ -1,3 +1,139 @@
+*,
+::after,
+::before {
+    box-sizing: border-box;
+}
+
+body {
+    font-size: 16px;
+    margin: 0;
+}
+
+@keyframes rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(-360deg);
+    }
+}
+
 .visually-hidden {
     visibility: hidden;
+}
+
+.main__seperator {
+    margin: 16px 0;
+}
+
+.main {
+    margin: 32px auto;
+    width: calc(100% - 24px);
+    max-width: 400px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+}
+
+.main__header {
+    text-align: center;
+}
+
+.main__header-title {
+    margin: 0;
+}
+
+#connection-status {
+    margin-bottom: 8px;
+    text-align: center;
+    color: green;
+}
+
+.spinner-wrapper {
+    margin: 16px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.spinner {
+    animation: rotate 1.5s infinite linear;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: solid transparent 2px;
+    --border-color: #00bfff;
+    border-top-color: var(--border-color);
+    border-bottom-color: var(--border-color);
+}
+
+.main__room-form {
+    margin: 0;
+}
+
+.form-control {
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.form-control__label {
+    width: 120px;
+    padding-right: 4px;
+}
+
+.form-control__input {
+    min-width: 100px;
+    width: 100px;
+    max-width: 200px;
+    flex-grow: 1;
+}
+
+#preview-container {
+    height: 100px;
+    background: orange;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.main__options {
+    margin-bottom: 8px;
+}
+
+.options__toggle-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 6px;
+}
+
+.options__toggle {
+    text-align: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #eee;
+}
+
+.options__toggle:hover {
+    background: #ccc;
+}
+
+.options__body--hidden {
+    display: none;
+}
+
+.main__controls {
+    display: flex;
+    justify-content: space-around;
+    margin: 0 -4px;
+}
+
+.main__control-button {
+    width: 100%;
+    max-width: 200px;
+    margin: 0 4px;
+    
 }
