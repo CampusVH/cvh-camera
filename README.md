@@ -28,7 +28,7 @@ The following list explains the usage of the parameters:
 
 * `pin` *optional*: The pin for the janus room. If the janus room has no pin, provide the value `none`. If this parameter is not provided, an input field for the pin is shown.
 
-* `customNameAllowed` *optional*: If this parameter is present (even when holding no value), an input field for a custom name is shown. This name is then required to start the transmission.
+* `customNameAllowed` *optional*: If this parameter is present (even when holding no value), an input field for a custom name is shown. The user can also update his name after starting a transmission. The names are escaped on the server to prevent Cross-Site-Scripting (XSS) attacks.
 
 # Camera Server
 
@@ -113,7 +113,7 @@ This is a list of all sent messages. Note that a newline character `\n` is appen
 | ---------------------------------- | -----------
 | `new_feed <slot>`                  | Sent after a sender on a slot has started transmitting a feed.
 | `remove_feed <slot>`               | Sent after a sender on a slot has stopped transmitting a feed or the slot is deactivated (which also removes the feed).
-| `custom_name <slot> <custom_name>` | Sent after a sender on a slot has started transmitting a feed and has set a custom name. The name is a string which is guaranteed to be escaped to prevent Cross-Site-Scripting (XSS) attacks. Note that the name can contain spaces. <br/> The controller should wrap the name into a HTML snippet and send it back to the camera server using the `set_annotation` command.
+| `custom_name <slot> <custom_name>` | Sent after a sender on a slot has started transmitting a feed and has set a custom name. The name is a string which is guaranteed to be escaped to prevent Cross-Site-Scripting (XSS) attacks. Note that the name can contain spaces but will never be an empty string. <br/> The controller should wrap the name into a HTML snippet and send it back to the camera server using the `set_annotation` command.
 
 ## Socket Traffic
 
