@@ -3,6 +3,7 @@ import { emitNewFeed, emitRemoveFeed } from './common-handlers';
 import { SenderSocket } from '../../models/sender-socket';
 import { ValidationError } from '../../models/validation-error';
 import { notifyCustomName } from '../../io-interface/handlers/output-handlers';
+import { escapeHTML } from '../../util/escape-html';
 
 const handleSetFeedId = (
     socket: SenderSocket,
@@ -57,24 +58,26 @@ const handleSetFeedId = (
             throw new ValidationError('No feed id was provided');
         }
 
-        const unescapedCustomName = data.customName;
+        let unescapedCustomName = data.customName;
         if (unescapedCustomName != null) {
-            console.log(
-                `Got custom name from slot ${slot}: ${unescapedCustomName}`
-            );
-            const customName = unescapedCustomName
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-            if (unescapedCustomName !== customName) {
+            unescapedCustomName = unescapedCustomName.trim();
+            if (unescapedCustomName.length > 0) {
                 console.log(
-                    `Warning: Escaped custom name (${customName}) does not equal the unescaped custom name` +
-                        `(${unescapedCustomName}) on slot ${slot} - this could mean that the user tried a Cross-Site-Scripting (XSS) attack`
+                    `Got custom name from slot ${slot}: ${unescapedCustomName}`
+                );
+                const customName = escapeHTML(unescapedCustomName);
+                if (unescapedCustomName !== customName) {
+                    console.log(
+                        `Warning: Escaped custom name (${customName}) does not equal the unescaped custom name` +
+                            `(${unescapedCustomName}) on slot ${slot} - this could mean that the user tried a Cross-Site-Scripting (XSS) attack`
+                    );
+                }
+                notifyCustomName(slot, customName);
+            } else {
+                console.log(
+                    'Error: Got a name that is either empty or consists only of whitespaces'
                 );
             }
-            notifyCustomName(slot, customName);
         }
 
         console.log('Setting feed id of slot ' + slot + ' to ' + feedId);
@@ -96,29 +99,83 @@ const handleSetFeedId = (
 
     fn({ success, message });
 };
+const handleChangeName = (
+    socket: SenderSocket,
+    data: null | { newName?: string }
+) => {
+    const slot = socket.cameraSlot;
+    const currentSlotState = cameraSlotState[slot];
+
+    if (!currentSlotState.feedActive) {
+        console.log(
+            'Error: Got change_name event on slot ' +
+                slot +
+                ' which has no active feed'
+        );
+        return;
+    }
+
+    if (socket.id !== currentSlotState.senderSocketId) {
+        console.log(
+            'Error: Got change_name event on slot ' +
+                slot +
+                ' from somebody who is not the sender'
+        );
+        return;
+    }
+
+    if (data == null) {
+        console.log(
+            'Error: Got change_name event with no data on slot ' + slot
+        );
+        return;
+    }
+
+    let unescapedNewName = data.newName;
+    if (unescapedNewName == null) {
+        console.log(
+            'Error: Got change_name event with no new name on slot' + slot
+        );
+        return;
+    }
+
+    unescapedNewName = unescapedNewName.trim();
+    if (unescapedNewName.length > 0) {
+        console.log(`Got new name for slot ${slot}: ${unescapedNewName}`);
+        const newName = escapeHTML(unescapedNewName);
+        if (unescapedNewName !== newName) {
+            console.log(
+                `Warning: Escaped new name (${newName}) does not equal the unescaped new name` +
+                    `(${unescapedNewName}) on slot ${slot} - this could mean that the user tried a Cross-Site-Scripting (XSS) attack`
+            );
+        }
+        notifyCustomName(slot, newName);
+    } else {
+        console.log(
+            'Error: Got a name that is either empty or consists only of whitespaces'
+        );
+    }
+};
 
 const handleSenderDisconnect = (socket: SenderSocket, _: string) => {
     const slot = socket.cameraSlot;
-    if (slot != null) {
-        const currentSlotState = cameraSlotState[slot];
-        if (
-            currentSlotState.feedActive &&
-            socket.id === currentSlotState.senderSocketId
-        ) {
-            console.log(
-                'Sender on slot ' + slot + ' disconnected - Clearing slot'
-            );
-            currentSlotState.feedActive = false;
-            currentSlotState.feedId = null;
-            currentSlotState.senderSocketId = null;
+    const currentSlotState = cameraSlotState[slot];
+    if (
+        currentSlotState.feedActive &&
+        socket.id === currentSlotState.senderSocketId
+    ) {
+        console.log('Sender on slot ' + slot + ' disconnected - Clearing slot');
+        currentSlotState.feedActive = false;
+        currentSlotState.feedId = null;
+        currentSlotState.senderSocketId = null;
 
-            emitRemoveFeed(slot);
-        }
+        emitRemoveFeed(slot);
     }
 };
 
 const registerSenderHandlers = (socket: SenderSocket) => {
     socket.on('set_feed_id', handleSetFeedId.bind(null, socket));
+    socket.on('change_name', handleChangeName.bind(null, socket));
     socket.on('disconnect', handleSenderDisconnect.bind(null, socket));
 };
 
@@ -149,7 +206,7 @@ export const handleSenderInit = (
                     ' that cannot be parsed to a number'
             );
             throw new ValidationError(
-                'Slot ' + slotStr + ' cannot be parsed to number'
+                'An invalid camera slot was provided (' + slotStr + ')'
             );
         }
         if (slot < 0 || slot > cameraSlotState.length - 1) {
@@ -158,9 +215,7 @@ export const handleSenderInit = (
                     slot +
                     ' which is not in the list of slots'
             );
-            throw new ValidationError(
-                'Slot ' + slot + ' is not in the list of slots'
-            );
+            throw new ValidationError('This camera slot does not exist');
         }
 
         const slotState = cameraSlotState[slot];
@@ -168,7 +223,9 @@ export const handleSenderInit = (
             console.log(
                 'Error: Got socket connection for inactive slot ' + slot
             );
-            throw new ValidationError('Slot ' + slot + ' is not active');
+            throw new ValidationError(
+                'This camera slot is not activated, contact your moderator'
+            );
         }
 
         const token = data.token;
@@ -183,7 +240,7 @@ export const handleSenderInit = (
                     ' for slot ' +
                     slot
             );
-            throw new ValidationError('Invalid token');
+            throw new ValidationError('Invalid token, contact your moderator');
         }
 
         console.log('Got sender socket connection on slot ' + slot);

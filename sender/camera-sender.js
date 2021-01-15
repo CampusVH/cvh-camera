@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', function() {
     var videoroomHandle = null;
     var sendResolution = 'stdres';
 
-    var roomForm = document.getElementById('room-form');
     var startButton = document.getElementById('start');
     var stopButton = document.getElementById('stop');
 
@@ -18,6 +17,12 @@ document.addEventListener('DOMContentLoaded', function() {
     var useUserPin = true;
     var customNameAllowed = false;
     var feedId = null;
+
+    var STATUS_CODE = {
+        success: 0,
+        warning: 1,
+        error: 2
+    };
 
     parseRoomFromURL();
     parseSlotFromURL();
@@ -32,12 +37,37 @@ document.addEventListener('DOMContentLoaded', function() {
     const socket = io('https://' + window.location.hostname, {
         path: '/socket.io/' + socketNumber
     });
+    setStatusMessage('Connecting to camera server...');
 
-    document.getElementById('options-toggle').onclick = function () {
-        document.getElementById('options').classList.toggle('options__body--hidden');
+    document.getElementById('options-toggle').onclick = function() {
+        document.getElementById('options').classList.toggle('hidden');
     };
 
+    document.getElementById('reload').onclick = function() {
+        window.location.reload();
+    };
+
+    var timeoutTime = 10000;
+    var cameraServerTimeout = setTimeout(function() {
+        setStatusMessage('Camera server connection timeout... Please try again later', STATUS_CODE.error);
+    }, timeoutTime);
+
     registerSocketHandlers();
+
+    function registerSocketHandlers() {
+        socket.on('connect', function() {
+            clearTimeout(cameraServerTimeout);
+            // This event will be triggered on every connect including reconnects
+            // That's why the check is necessary to ensure that the event is only emitted once
+            if (!gotSocketInitResponse) {
+                socket.emit(
+                    'sender_init',
+                    { slot, token },
+                    handleSenderInitResponse
+                );
+            }
+        });
+    };
 
     function handleSenderInitResponse(data) {
         if (!gotSocketInitResponse) {
@@ -46,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 initJanus();
             } else {
-                alert('Socket connection error:\n' + data.message);
+                setStatusMessage(`Socket connection error: ${data.message} - Reload to try again`, STATUS_CODE.error);
             }
         }
     }
@@ -62,40 +92,36 @@ document.addEventListener('DOMContentLoaded', function() {
             bandwidthSubmit.removeAttribute('disabled', '');
             stopButton.removeAttribute('disabled');
             stopButton.onclick = function() {
-                janus.destroy();
+                setStatusMessage('Transmission stopped', STATUS_CODE.warning);
+                cleanup();
             };
 
-            var video = document.getElementById('camera-preview');
-            if (video != null) {
-                video.classList.remove('visually-hidden');
+            showVideo();
+            showOptions();
+            if (customNameAllowed) {
+                var nameForm = document.getElementById('name-form');
+                nameForm.onsubmit = function(event) {
+                    event.preventDefault();
+                    const newName = document.getElementById('name-input').value;
+                    socket.emit('change_name', { newName });
+                    setStatusMessage(`Requested name change to: ${newName}`);
+                };
+                var nameChangeButton = document.getElementById('name-change');
+                nameChangeButton.removeAttribute('disabled');
+                showElement(nameChangeButton);
             }
 
-            alert('Sharing camera');
+            setStatusMessage('Sharing camera');
         } else {
-            alert('Error: ' + data.message);
-            window.location.reload();
+            setStatusMessage(`Error: ${data.message} - Reload to try again`, STATUS_CODE.error);
         }
     }
 
-    function registerSocketHandlers() {
-        socket.on('connect', function() {
-            // This event will be triggered on every connect including reconnects
-            // That's why the check is necessary to ensure that the event is only emitted once
-            console.log('socket on connect handler');
-            if (!gotSocketInitResponse) {
-                socket.emit(
-                    'sender_init',
-                    { slot, token },
-                    handleSenderInitResponse
-                );
-            }
-        });
-    };
-
     function initJanus() {
+        setStatusMessage('Initializing Janus...')
         Janus.init({ debug: 'all', callback: function() {
             if (!Janus.isWebrtcSupported()) {
-                alert('No WebRTC support... ');
+                setStatusMessage('Your browser does not support camera transmission', STATUS_CODE.error);
                 return;
             }
 
@@ -108,23 +134,29 @@ document.addEventListener('DOMContentLoaded', function() {
                             videoroomHandle = pluginHandle;
                             Janus.log('Plugin attached! (' + videoroomHandle.getPlugin() + ', id=' + videoroomHandle.getId() + ')');    
 
-                            roomForm.onsubmit = function(event) {
-                                event.preventDefault();
+                            hideSpinner();
+                            showInputs();
+
+                            startButton.onclick = function() {
+                                setStatusMessage('Connecting...');
                                 var resSelect = document.getElementById('res-select');
                                 startButton.setAttribute('disabled', '');
                                 resSelect.setAttribute('disabled', '');
                                 sendResolution = resSelect.value;
                                 Janus.log('sendResolution:', sendResolution);
                                 if (useUserPin) {
-                                    pin = document.getElementById('pin-input').value;
+                                    var pinInputEl = document.getElementById('pin-input');
+                                    pin = pinInputEl.value;
+                                    pinInputEl.setAttribute('disabled', '');
                                 }
                                 shareCamera(pin);
                             };
                             startButton.removeAttribute('disabled');
+                            setStatusMessage('Connected - Click Start to transmit your camera feed');
                         },
                         error: function(error) {
                             Janus.error('Error attaching plugin: ', error);
-                            alert(error);
+                            setStatusMessage(`Janus attach error: ${error} - Reload to try again`, STATUS_CODE.error);
                         },
                         webrtcState: function(on) {
                             if (on) {
@@ -146,9 +178,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 video.setAttribute('autoplay', '');
                                 video.setAttribute('playsinline', '');
                                 video.setAttribute('muted', 'muted');
-                                if (!transmitting) {
-                                    video.classList.add('visually-hidden');
-                                }
                                 document.getElementById('preview-container').appendChild(video);
                             }
                             Janus.attachMediaStream(document.getElementById('camera-preview'), stream);
@@ -157,12 +186,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 error: function(error) {
                     Janus.error(error);
-                    alert(error);
-                    window.location.reload();
+                    setStatusMessage(`Janus error: ${error} - Reload to try again`, STATUS_CODE.error);
                 },
                 destroyed: function() {
-                    alert('Stopped');
-                    window.location.reload();
+                    console.log('Janus destroyed!');
                 }
             });
         }});
@@ -202,41 +229,105 @@ document.addEventListener('DOMContentLoaded', function() {
                 Janus.log('Joined event:', msg);
                 feedId = msg.id;
                 Janus.log('Successfully joined room ' + msg['room'] + ' with ID ' + feedId);
-                //if (msg['publishers'].length === 0) {
-                    videoroomHandle.createOffer({
-                        media: {
-                            videoSend: true,
-                            video: sendResolution,
-                            audioSend: false,
-                            videoRecv: false
-                        },
-                        success: function(jsep) {
-                            var publish = {
-                                request: 'configure',
-                                audio: false,
-                                video: true
-                            };
-                            videoroomHandle.send({ message: publish, jsep });
-                        },
-                        error: function(error) {
-                            Janus.error('WebRTC error:', error);
-                            alert('WebRTC error: ' + error.message);
-                        }
-                    });
-                //} else {
-                //    alert('There is already somebody who is sharing his camera in this room!');
-                //    window.location.reload();
-                //}
+                videoroomHandle.createOffer({
+                    media: {
+                        videoSend: true,
+                        video: sendResolution,
+                        audioSend: false,
+                        videoRecv: false
+                    },
+                    success: function(jsep) {
+                        var publish = {
+                            request: 'configure',
+                            audio: false,
+                            video: true
+                        };
+                        videoroomHandle.send({ message: publish, jsep });
+                    },
+                    error: function(error) {
+                        Janus.error('WebRTC error:', error);
+                        setStatusMessage(`Janus WebRTC error: ${error.message} - Reload to try again`, STATUS_CODE.error);
+                    }
+                });
             }
             if (event === 'event' && msg['error']) {
-                alert('Error message: ' + msg['error'] + '.\nError object: ' + JSON.stringify(msg, null, 2));
-                window.location.reload();
+                setStatusMessage(`Janus error: ${msg['error']} - Reload to try again`, STATUS_CODE.error);
             }
         }
         if (jsep) {
             videoroomHandle.handleRemoteJsep({ jsep });
         }
     };
+
+    function setStatusMessage(message, statusCode) {
+        // For error status messages a cleanup is performed automatically
+        // If this is not desired, use warnings
+        if (statusCode == null) {
+            statusCode = STATUS_CODE.success;
+        }
+        var statusEl = document.getElementById('status');
+        statusEl.setAttribute('data-status-code', statusCode);
+        statusEl.innerText = message;
+        if (statusCode === STATUS_CODE.error) {
+            cleanup();
+        }
+    }
+
+    function cleanup() {
+        hideVideo();
+        hideOptions();
+        hideInputs();
+        hideSpinner();
+        showReload();
+        if (videoroomHandle) {
+            videoroomHandle.detach();
+        }
+        if (socket) {
+            socket.disconnect();
+        }
+    }
+
+    function hideElement(el) {
+        el.classList.add('hidden');
+    }
+
+    function showElement(el) {
+        el.classList.remove('hidden');
+    }
+
+    function hideSpinner() {
+        hideElement(document.getElementById('spinner'));
+    }
+
+    function showInputs() {
+        showElement(document.getElementById('inputs-container'));
+    }
+
+    function hideInputs() {
+        hideElement(document.getElementById('inputs-container'));
+    }
+
+    function showOptions() {
+        showElement(document.getElementById('options-container'));
+    }
+
+    function hideOptions() {
+        hideElement(document.getElementById('options-container'));
+    }
+
+    function showVideo() {
+        showElement(document.getElementById('preview-container'));
+    }
+
+    function hideVideo() {
+        hideElement(document.getElementById('preview-container'));
+    }
+
+    function showReload() {
+        showElement(document.getElementById('reload'));
+        hideElement(startButton);
+        hideElement(stopButton);
+    }
 
     function parseRoomFromURL() {
         var urlParams = new URLSearchParams(window.location.search);
@@ -268,10 +359,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (pin === 'none') {
                 pin = '';
             }
-            document.getElementById('pin-container').remove();
-            document.getElementById('pin-hint').remove();
         } else {
             console.log('Got no valid pin in URL search params');
+            showElement(document.getElementById('pin-control'));
         }
     }
 
@@ -289,8 +379,8 @@ document.addEventListener('DOMContentLoaded', function() {
         var urlParams = new URLSearchParams(window.location.search);
         var param = urlParams.get('customNameAllowed');
         customNameAllowed = param != null;
-        if (!customNameAllowed) {
-            document.getElementById('name-container').remove();
+        if (customNameAllowed) {
+            showElement(document.getElementById('name-control'));
         }
     }
 }, false);

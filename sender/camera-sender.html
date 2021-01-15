@@ -2,6 +2,7 @@
     <head>
         <title>Camera Sender</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta charset="utf-8">
         <script type="text/javascript" src="adapter.min.js"></script>
         <script type="text/javascript" src="janus.js"></script>
         <script type="text/javascript" src="socket.io.min.js"></script>
@@ -11,20 +12,21 @@
     <body>
         <main class="main">
             <header class="main__header">
-                <h3 id="room-indicator" class="main__header-title">
+                <h2 class="main__header-title">CVH-Camera</h2>
+                <h3 id="room-indicator" class="main__header-subtitle">
                     Channel&nbsp;<span id="room"></span> &bull; Camera&nbsp;<span id="slot"></span>
                 </h3>
             </header>
 
             <hr class="main__seperator" />
 
-            <div id="connection-status">Connected</div>
+            <div id="status">Connected</div>
 
             <div id="spinner" class="spinner-wrapper">
                 <div class="spinner"></div>
             </div>
 
-            <form id="room-form" class="main__room-form">
+            <div id="inputs-container" class="main__inputs-container hidden">
                 <div class="form-control">
                     <label class="form-control__label" for="res-select">Resolution</label>
                     <select id="res-select" class="form-control__input">
@@ -37,29 +39,31 @@
                     </select>
                 </div>
 
-                <div id="name-control" class="form-control">
-                    <label class="form-control__label" for="name-input">Display name</label>
-                    <input id="name-input" class="form-control__input" required type="text" />
-                </div>
-
-                <div id="pin-control" class="form-control">
+                <div id="pin-control" class="form-control hidden">
                     <label class="form-control__label" for="pin-input">Room PIN</label>
                     <input id="pin-input" class="form-control__input" type="password" placeholder="Leave empty if none" />
                 </div>
-            </form>
 
-            <div id="preview-container">Preview</div>
-
-            <section class="main__options">
-                <div class="options__toggle-wrapper">
-                    <div id="options-toggle" class="options__toggle">Advanced options</div>
+                <div id="name-control" class="form-control hidden">
+                    <label class="form-control__label" for="name-input">Display name</label>
+                    <form id="name-form" class="form-control__input name-control__form">
+                        <input id="name-input" class="name-control__input" required type="text" />
+                        <button disabled title="Change name" id="name-change" class="name-control__change hidden">&gt;</button>
+                    </form>
                 </div>
-                <div id="options" class="options__body options__body--hidden">
+            </div>
+
+            <div id="preview-container" class="hidden"></div>
+
+            <section id="options-container" class="main__options hidden">
+                <button id="options-toggle" class="options__toggle">Advanced options</button>
+                <div id="options" class="options__body hidden">
                     <form id="bandwidth-form">
-                        <label>While the camera is running, a bandwidth cap can be set here. 0 or negative means no cap.</label>
-                        <br />
-                        <input type="text" id="bandwidth-input" placeholder="New bitrate [in kbit/s]" />
-                        <input type="submit" id="bandwidth-submit" value="Change" disabled />
+                        <p class="options__hint">While the camera is running, a bandwidth cap can be set here. 0 or negative means no cap.</p>
+                        <div class="bandwidth-form__control">
+                            <input type="text" placeholder="Bitrate [in kbit/s]" id="bandwidth-input" class="bandwidth-form__input" />
+                            <button type="submit" id="bandwidth-submit" class="bandwidth-form__button" disabled>Change</button>
+                        </div>
                     </form>
                 </div>
             </section>
@@ -67,8 +71,9 @@
             <hr class="main__seperator" />
 
             <div class="main__controls">
-                <button id="start" class="main__control-button" type="submit" disabled>Start</button>
+                <button id="start" class="main__control-button" disabled>Start</button>
                 <button id="stop" class="main__control-button" disabled>Stop</button>
+                <button id="reload" class="main__control-button hidden">Reload</button>
             </div>
         </main>
     </body>
