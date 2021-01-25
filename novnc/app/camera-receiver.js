@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', function() {
     var opaqueId = 'camera-receiver-' + Janus.randomString(12);
 
     var room = 1000;
-    var source = {};
 
     var passwordButton = document.getElementById('noVNC_password_button');
     var passwordInput = document.getElementById('noVNC_password_input');
@@ -49,6 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
     //     h: 0,
     //     z: 0
     // }
+    var source = {};
 
     var videoPrescale = 1;
     parseVideoPrescaleFromURL();
@@ -138,37 +138,52 @@ document.addEventListener('DOMContentLoaded', function() {
         source[slot] = feedId;
         var cameraElementId = 'camera-feed-' + slot;
 
-        var video = document.getElementById(cameraElementId);
-        if (video == null) {
+        var videoEl = document.getElementById(cameraElementId);
+        if (videoEl == null) {
             var videoContainer = document.createElement('div');
             videoContainer.setAttribute('id', cameraElementId + '-container');
             videoContainer.classList.add('camera-feed-container');
 
-            video = document.createElement('video');
-            video.setAttribute('id', cameraElementId);
-            video.setAttribute('muted', '');
-            video.setAttribute('autoplay', '');
-            video.setAttribute('playsinline', '');
+            videoEl = document.createElement('video');
+            videoEl.setAttribute('id', cameraElementId);
+            videoEl.setAttribute('muted', '');
+            videoEl.setAttribute('autoplay', '');
+            videoEl.setAttribute('playsinline', '');
             // Necessary for autoplay without user interaction
-            video.oncanplaythrough = function() {
-                video.muted = true;
-                video.play();
+            videoEl.oncanplaythrough = function() {
+                videoEl.muted = true;
+                videoEl.play();
             }
-            video.classList.add('camera-feed');
+            videoEl.classList.add('camera-feed');
 
             document.body.appendChild(videoContainer);
-            videoContainer.appendChild(video);
+            videoContainer.appendChild(videoEl);
         }
 
-        var remoteFeedHandle = null;
-        
+        attachSubscriber(slot, feedId);
+
+        handleCommand(slot, initialState.geometry.command, initialState.geometry.params);
+        handleCommand(slot, initialState.visibility.command, initialState.visibility.params);
+        if (initialState.annotation) {
+            setAnnotation(slot, initialState.annotation);
+        }
+    }
+
+    function reconnectRemoteFeed(slot) {
+        if (janusPluginHandles[slot] != null) {
+            janusPluginHandles[slot].detach();
+        }
+        var feedId = source[slot];
+        attachSubscriber(slot, feedId);
+    }
+
+    function attachSubscriber(slot, feedId) {
         janus.attach({
             plugin: 'janus.plugin.videoroom',
             opaqueId,
             success: function(pluginHandle) {
-                remoteFeedHandle = pluginHandle;
                 janusPluginHandles[slot] = pluginHandle;
-                Janus.log('Plugin attached (subscriber slot ' + slot + ')! (' + remoteFeedHandle.getPlugin() + ', id=' + remoteFeedHandle.getId() + ')');
+                Janus.log('Plugin attached (subscriber slot ' + slot + ')! (' + pluginHandle.getPlugin() + ', id=' + pluginHandle.getId() + ')');
                 var listen = {
                     request: 'join',
                     room,
@@ -176,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     feed: feedId,
                     pin
                 };
-                remoteFeedHandle.send({ message: listen });
+                pluginHandle.send({ message: listen });
             },
             error: function(error) {
                 var formattedError = JSON.stringify(error, null, 2);
@@ -185,18 +200,23 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             onmessage: handleMessageSubscriber.bind(null, slot),
             onremotestream: function(stream) {
-                Janus.attachMediaStream(video, stream);
+                var cameraEl = document.getElementById('camera-feed-' + slot);
+                Janus.attachMediaStream(cameraEl, stream);
+            },
+            iceState: function handleIceState(state) {
+                if (state === 'failed') {
+                    console.warn(`iceState of slot ${slot} changed to failed`);
+                    console.log('Trying to reconnect');
+                    reconnectRemoteFeed(slot);
+                    console.log('%cICE failed - bitte Screenshot vom Verlauf dieser Konsole machen und an Professor Gerwinski oder Simon Döring (simon.doering@stud.hs-bochum.de) schicken. Bitte auch schauen, ob noch/wieder alle Kamera-Bilder zu sehen sind, ohne die Seite neu zu laden!', 'font-size: 20px; background: #f55');
+                } else {
+                    console.log(`iceState of slot ${slot} changed to: ${state}`);
+                }
             },
             oncleanup: function() {
                 Janus.log('Got a cleanup notification');
             }
         });
-
-        handleCommand(slot, initialState.geometry.command, initialState.geometry.params);
-        handleCommand(slot, initialState.visibility.command, initialState.visibility.params);
-        if (initialState.annotation) {
-            setAnnotation(slot, initialState.annotation);
-        }
     }
 
     function handleMessageSubscriber(slot, msg, jsep) {
@@ -230,6 +250,20 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
+
+    // TEST START
+    var testContainer = document.createElement('div');
+    testContainer.setAttribute('style', 'position: fixed; bottom: 0; right: 0;');
+    [0, 1, 2, 3].forEach(function(slot) {
+        var testButton = document.createElement('button');
+        testButton.innerText = 'Reconnect slot ' + slot;
+        testButton.onclick = function() {
+            reconnectRemoteFeed(slot);
+        };
+        testContainer.appendChild(testButton);
+    });
+    document.body.appendChild(testContainer);
+    // TEST END
 
     function parseRoomFromURL() {
         var urlParams = new URLSearchParams(window.location.search);
