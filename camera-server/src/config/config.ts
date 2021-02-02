@@ -5,6 +5,11 @@ interface Config {
     port: number;
     cameraSlots: number;
     notifyPath: string;
+    janusURL: string;
+    janusRoom: number;
+    janusRoomSecret: string;
+    janusRoomPin: string;
+    janusBitrate: number;
 }
 
 // Required to access config with config[key]
@@ -34,13 +39,18 @@ if (configPath) {
 const indexableConfig: IndexableConfig = {
     port: 5000,
     cameraSlots: 4,
-    notifyPath: ''
+    notifyPath: '',
+    janusURL: 'http://localhost:8088/janus',
+    janusRoom: 1000,
+    janusRoomSecret: 'default',
+    janusRoomPin: '',
+    janusBitrate: 128000
 };
 
 if (fileContent) {
     let readConfig: any;
 
-    // No need to process error because if-check below sanitises read config
+    // No need to process error because if-check below sanitizes read config
     try {
         readConfig = JSON.parse(fileContent);
     } catch (err) {}

@@ -20,13 +20,13 @@ with the values `value1` and `value2`.
 
 The following list explains the usage of the parameters:
 
-* `room`: The number of the janus room. Defaults to `1000`.
+* `room`: The number of the Janus room. Defaults to `1000`.
 
 * `slot`: The camera slot used in the room. Defaults to `0`.
 
 * `token`: The token required for authentication on the camera server (see below). Defaults to an empty string, which will yield to the user not being able to transmit his camera feed.
 
-* `pin` *optional*: The pin for the janus room. If the janus room has no pin, provide the value `none`. If this parameter is not provided, an input field for the pin is shown.
+* `pin` *optional*: The pin for the Janus room. If the Janus room has no pin, provide the value `none`. If this parameter is not provided, an input field for the pin is shown.
 
 * `customNameAllowed` *optional*: If this parameter is present (even when holding no value), an input field for a custom name is shown. If a value is provided for this field, it will be used as initial value of the input field. The user can also update his name after starting a transmission. The names are escaped on the server to prevent Cross-Site-Scripting (XSS) attacks.
 
@@ -34,7 +34,10 @@ The following list explains the usage of the parameters:
 
 CVH-Camera uses a Nodejs server with the socket.io library to send events regarding the camera feeds out to the receivers in realtime. The socket connection is also used to verify feeds that are published in the Janus rooms and only send those to the receivers. This way no unwanted feeds can be shown to the receivers while still having a public password for the Janus room itself.
 
-One instance of the camera server is meant to manage one Janus room. It does this by defining slots for cameras which are all disabled by default. To activate a slot, one has to provide a token for that slot. This token will be required to be able to send a feed on that slot. As mentioned above, only feeds that are verified in that way are shown to the receivers.
+One instance of the camera server is meant to manage one Janus room.
+This is done by creating a new Janus room on startup and destroying it on shutdown of the server.
+
+The room is managed by defining slots for cameras which are all disabled by default. To activate a slot, one has to provide a token for that slot. This token will be required to be able to send a feed on that slot. As mentioned above, only feeds that are verified in that way are shown to the receivers.
 One can also refresh the token for a given slot or simply deactivate it.
 
 ## Compiling and Running the Server
@@ -62,6 +65,23 @@ Below is a description of the config file's properties:
   The path can either be absolute or relative to the config file but must not start with a tilde.
 
   If this property is emitted or an empty string is provided, the notify feature will not be used.
+
+* `janusURL`: The url of the janus server. Defaults to `http://localhost:8088/janus`.
+  Note that by default `/janus` has to be appended to the url.
+
+* `janusRoom`: The janus room which will be used. Make sure that the room is unique
+  and not used for anything else, as the server will destroy it on startup to create
+  a new room. Defaults to `1000`.
+
+* `janusRoomSecret`: The secret used by the janus room. This is required to make
+  severe request regarding the room like destroying it. Make sure that this is a long
+  arbitrary string. Defaults to `default`.
+
+* `janusRoomPin`: The pin required to join the room as a viewer or sender. Defaults to
+  no pin (empty string).
+
+* `janusBitrate`: The default bitrate with which a camera feed is transmitted by Janus.
+  Defaults to `128000`.
 
 ## Stdin-Interface
 
@@ -144,6 +164,6 @@ Server responses to request will always include the following fields:
 
 In order to authenticate itself, the sender has to provide a slot and a token by emitting a `sender_init` event. These values are provided through the query string of the sender web page. When the server receives the `sender_init` event it validates the slot and the token and sends a response.
 
-After a successful initialisation the connectin to janus is established. When the camera is shared, the id of the transmitted Janus feed is determined and then sent to the server using the `set_feed_id` event. On the server the corresponding slot will save that feed id. This will then be used to tell all receivers which feed id to attach to.
+After a successful initialisation the connectin to Janus is established. When the camera is shared, the id of the transmitted Janus feed is determined and then sent to the server using the `set_feed_id` event. On the server the corresponding slot will save that feed id. This will then be used to tell all receivers which feed id to attach to.
 
 When the sender socket disconnects, an event will be emitted, notifying the receivers to remove the corresponding feed.

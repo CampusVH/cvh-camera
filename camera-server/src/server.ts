@@ -6,13 +6,24 @@ import { handleQueryState } from './socket-io/handlers/common-handlers';
 import { readlineInterface } from './io-interface/readline-interface';
 import { handleCommand } from './io-interface/handlers/input-handlers';
 import { registerCleanupLogic } from './util/cleanup';
+import { room } from './janus/janus-room';
 
-socketIO.on('connection', (socket: Socket) => {
-    socket.on('query_state', handleQueryState);
+(async () => {
+    try {
+        await room.init();
+    } catch (err) {
+        console.log(err);
+        console.log('Exiting process');
+        process.exit(1);
+    }
 
-    socket.on('sender_init', handleSenderInit.bind(null, socket));
-});
+    socketIO.on('connection', (socket: Socket) => {
+        socket.on('query_state', handleQueryState);
 
-readlineInterface.on('line', handleCommand);
+        socket.on('sender_init', handleSenderInit.bind(null, socket));
+    });
 
-registerCleanupLogic();
+    readlineInterface.on('line', handleCommand);
+
+    registerCleanupLogic();
+})();

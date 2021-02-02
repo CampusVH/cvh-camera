@@ -1,45 +1,45 @@
 import { socketIO } from '../socket-io/socket-io';
 import { isBlocking } from '../io-interface/handlers/output-handlers';
+import { room } from '../janus/janus-room';
 
-interface ExitHandlerOptions {
-    cleanup?: boolean;
-    exit?: boolean;
-}
+const asyncExitHandler = async (reason: number | string | Error) => {
+    console.log('Async exit handler');
+    try {
+        await room.cleaup();
+    } catch (err) {
+        console.log('Error in async exit handler:', err);
+    }
 
-const exitHandler = (
-    options: ExitHandlerOptions,
-    exitCode: string | number
-) => {
-    if (options.cleanup) {
-        console.log('cleanup');
-        socketIO.emit('remove_all_feeds');
-    }
-    if (exitCode || exitCode === 0) {
-        console.log('Exit code:', exitCode);
-        if (exitCode === 0 && isBlocking()) {
-            console.log('Aborting process due to blocking file append');
-            process.abort();
-        }
-    }
-    if (options.exit) {
-        process.exit();
+    process.exit(isNaN(+reason) ? 1 : +reason);
+};
+
+const syncExitHandler = () => {
+    console.log('Sync exit handler');
+    socketIO.emit('remove_all_feeds');
+    if (isBlocking()) {
+        console.log('Aborting process due to blocking file append');
+        process.abort();
     }
 };
 
 export const registerCleanupLogic = () => {
-    // do something when app is closing
-    process.on('exit', exitHandler.bind(null, { cleanup: true }));
+    [
+        'beforeExit',
+        'uncaughtException',
+        'unhandledRejection',
+        'SIGHUP',
+        'SIGINT',
+        'SIGQUIT',
+        'SIGILL',
+        'SIGTRAP',
+        'SIGABRT',
+        'SIGBUS',
+        'SIGFPE',
+        'SIGUSR1',
+        'SIGSEGV',
+        'SIGUSR2',
+        'SIGTERM'
+    ].forEach((evt) => process.on(evt, asyncExitHandler));
 
-    // catches ctrl+c event
-    process.on('SIGINT', exitHandler.bind(null, { exit: true }));
-
-    // catches "kill pid" (for example: nodemon restart)
-    process.on('SIGUSR1', exitHandler.bind(null, { exit: true }));
-    process.on('SIGUSR2', exitHandler.bind(null, { exit: true }));
-
-    // catches uncaught exceptions
-    process.on('uncaughtException', exitHandler.bind(null, { exit: true }));
-
-    // catches termination
-    process.on('SIGTERM', exitHandler.bind(null, { exit: true }));
+    process.on('exit', syncExitHandler);
 };
