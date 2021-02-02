@@ -380,6 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var param = urlParams.get('customNameAllowed');
         customNameAllowed = param != null;
         if (customNameAllowed) {
+            document.getElementById('name-input').value = param;
             showElement(document.getElementById('name-control'));
         }
     }

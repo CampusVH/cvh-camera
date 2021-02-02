@@ -28,7 +28,7 @@ The following list explains the usage of the parameters:
 
 * `pin` *optional*: The pin for the janus room. If the janus room has no pin, provide the value `none`. If this parameter is not provided, an input field for the pin is shown.
 
-* `customNameAllowed` *optional*: If this parameter is present (even when holding no value), an input field for a custom name is shown. The user can also update his name after starting a transmission. The names are escaped on the server to prevent Cross-Site-Scripting (XSS) attacks.
+* `customNameAllowed` *optional*: If this parameter is present (even when holding no value), an input field for a custom name is shown. If a value is provided for this field, it will be used as initial value of the input field. The user can also update his name after starting a transmission. The names are escaped on the server to prevent Cross-Site-Scripting (XSS) attacks.
 
 # Camera Server
 
