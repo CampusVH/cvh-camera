@@ -251,20 +251,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // TEST START
-    var testContainer = document.createElement('div');
-    testContainer.setAttribute('style', 'position: fixed; bottom: 0; right: 0;');
-    [0, 1, 2, 3].forEach(function(slot) {
-        var testButton = document.createElement('button');
-        testButton.innerText = 'Reconnect slot ' + slot;
-        testButton.onclick = function() {
-            reconnectRemoteFeed(slot);
-        };
-        testContainer.appendChild(testButton);
-    });
-    document.body.appendChild(testContainer);
-    // TEST END
-
     function parseRoomFromURL() {
         var urlParams = new URLSearchParams(window.location.search);
         var roomParam = urlParams.get('room');
