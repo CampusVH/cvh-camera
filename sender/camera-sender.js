@@ -54,6 +54,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     registerSocketHandlers();
 
+    function handleUnexpectedSocketDisconnect() {
+        console.log('Socket disconnected');
+        setStatusMessage('Socket disconnected. This either means that you are having connectivity ' +
+            'issues or that the server disconnected you on purpose.', STATUS_CODE.error);
+    }
+
     function registerSocketHandlers() {
         socket.on('connect', function() {
             clearTimeout(cameraServerTimeout);
@@ -67,6 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 );
             }
         });
+        socket.on('disconnect', handleUnexpectedSocketDisconnect);
     };
 
     function handleSenderInitResponse(data) {
@@ -288,7 +295,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (videoroomHandle) {
             videoroomHandle.detach();
         }
-        if (socket) {
+        if (socket && socket.connected) {
+            // Remove handler because this disconnect call is expected
+            // in the case of an error
+            socket.off('disconnect', handleUnexpectedSocketDisconnect);
             socket.disconnect();
         }
     }
