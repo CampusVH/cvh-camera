@@ -3,7 +3,7 @@ import { isBlocking } from '../io-interface/handlers/output-handlers';
 import { room } from '../janus/janus-room';
 
 const asyncExitHandler = async (reason: number | string | Error) => {
-    console.log('Async exit handler');
+    console.log(`Async exit handler with exit reason ${reason}`);
     try {
         await room.cleaup();
     } catch (err) {
@@ -13,8 +13,8 @@ const asyncExitHandler = async (reason: number | string | Error) => {
     process.exit(isNaN(+reason) ? 1 : +reason);
 };
 
-const syncExitHandler = () => {
-    console.log('Sync exit handler');
+const syncExitHandler = (code: number | string) => {
+    console.log(`Sync exit handler with code ${code}`);
     socketIO.emit('remove_all_feeds');
     if (isBlocking()) {
         console.log('Aborting process due to blocking file append');

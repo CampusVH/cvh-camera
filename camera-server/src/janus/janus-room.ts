@@ -66,7 +66,7 @@ class JanusRoom {
             }
         }
         console.log(
-            'Warning: Janus session will timeout because long poll got no response'
+            'Warning: Janus session will timeout because long poll got no response or got cancelled'
         );
         this._sessionAlive = false;
     }
