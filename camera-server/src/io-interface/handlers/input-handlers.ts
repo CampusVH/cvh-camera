@@ -1,11 +1,13 @@
 import { socketIO } from '../../socket-io/socket-io';
 import { cameraSlotState } from '../../state/camera-slot-state';
 import {
-    emitRemoveFeed,
     emitSetAnnotation,
     emitRemoveAnnotation
 } from '../../socket-io/handlers/common-handlers';
-import { emitControllerBitrateLimit } from '../../socket-io/handlers/sender-handlers';
+import {
+    disconnectSocket,
+    emitControllerBitrateLimit
+} from '../../socket-io/handlers/sender-handlers';
 import { setBitrate } from '../../janus/handlers';
 import { config } from '../../config/config';
 
@@ -63,7 +65,9 @@ const handleInternalCommand = (
                 return;
             }
             console.log('Deactivating slot ' + slot);
-            emitRemoveFeed(slot);
+            if (currentCameraState.feedActive) {
+                disconnectSocket(currentCameraState.senderSocketId!);
+            }
 
             currentCameraState.slotActive = false;
             currentCameraState.token = null;

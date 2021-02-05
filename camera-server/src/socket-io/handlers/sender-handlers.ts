@@ -8,6 +8,15 @@ import { setBitrate } from '../../janus/handlers';
 import { socketIO } from '../socket-io';
 import { config } from '../../config/config';
 
+export const disconnectSocket = (socketId: string) => {
+    const socket = socketIO.sockets.sockets.get(socketId);
+    if (socket) {
+        socket.disconnect();
+    } else {
+        console.log('Error: Tried to disconnect socket that does not exist');
+    }
+};
+
 export const emitControllerBitrateLimit = (
     socketId: string,
     bitrateLimit: number
