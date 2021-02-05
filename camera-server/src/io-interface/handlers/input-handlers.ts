@@ -5,6 +5,9 @@ import {
     emitSetAnnotation,
     emitRemoveAnnotation
 } from '../../socket-io/handlers/common-handlers';
+import { emitControllerBitrateLimit } from '../../socket-io/handlers/sender-handlers';
+import { setBitrate } from '../../janus/handlers';
+import { config } from '../../config/config';
 
 const visibilityCommands = ['hide', 'show'];
 const geometryCommands = [
@@ -16,7 +19,8 @@ const internalCommands = [
     'deactivate_slot',
     'refresh_token',
     'set_annotation',
-    'remove_annotation'
+    'remove_annotation',
+    'set_bitrate_limit'
 ];
 
 const setAnnotation = (slot: number, annotation: string) => {
@@ -67,6 +71,7 @@ const handleInternalCommand = (
             currentCameraState.feedId = null;
             currentCameraState.senderSocketId = null;
             currentCameraState.annotation = null;
+            currentCameraState.controllerBitrateLimit = config.janusBitrate;
             break;
         case 'refresh_token':
             if (!currentCameraState.slotActive) {
@@ -102,6 +107,47 @@ const handleInternalCommand = (
             if (currentCameraState.feedActive) {
                 emitRemoveAnnotation(slot);
             }
+            break;
+        case 'set_bitrate_limit':
+            if (!currentCameraState.slotActive) {
+                console.log(
+                    `Error: Tried to set controller bitrate limit for slot ${slot} which is not activated`
+                );
+                return;
+            }
+
+            if (params.length === 0) {
+                console.log(
+                    `Error: Tried to set controller bitrate limit for slot ${slot} without providing one`
+                );
+                return;
+            }
+
+            const bitrateLimit = parseInt(params[0]);
+            if (isNaN(bitrateLimit)) {
+                console.log(
+                    `Error: Tried to set controller bitrate limit for slot ${slot} with a non-numeric bitrate (${params[0]})`
+                );
+                return;
+            }
+
+            const prevBitrate = currentCameraState.getCurrentBitrate();
+            currentCameraState.controllerBitrateLimit = bitrateLimit;
+
+            if (currentCameraState.feedActive) {
+                emitControllerBitrateLimit(
+                    currentCameraState.senderSocketId!,
+                    bitrateLimit
+                );
+
+                // Can only update bitrate of a specific feed
+                // Janus doesn't know about the concept of slots
+                const newBitrate = currentCameraState.getCurrentBitrate();
+                if (prevBitrate !== newBitrate) {
+                    setBitrate(slot, newBitrate);
+                }
+            }
+
             break;
         default:
             console.log(

@@ -125,14 +125,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
+
             janus = new Janus({
                 server: server,
                 success: function() {
+                    Janus.log('Janus instance created with session id ' + janus.getSessionId());
                     janus.attach({
                         plugin: 'janus.plugin.videoroom',
                         success: function(pluginHandle) {
                             videoroomHandle = pluginHandle;
-                            Janus.log('Plugin attached! (' + videoroomHandle.getPlugin() + ', id=' + videoroomHandle.getId() + ')');    
+                            Janus.log('Plugin attached! (' + videoroomHandle.getPlugin() + ', id=' + videoroomHandle.getId() + ')');
 
                             hideSpinner();
                             showInputs();
@@ -160,7 +162,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         },
                         webrtcState: function(on) {
                             if (on) {
-                                var data = { feedId };
+                                var data = {
+                                    feedId,
+                                    sessionId: janus.getSessionId(),
+                                    videoroomId: videoroomHandle.getId()
+                                };
                                 if (customNameAllowed) {
                                     data.customName = document.getElementById('name-input').value;
                                 }

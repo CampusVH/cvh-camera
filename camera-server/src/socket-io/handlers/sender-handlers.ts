@@ -4,10 +4,27 @@ import { SenderSocket } from '../../models/sender-socket';
 import { ValidationError } from '../../models/validation-error';
 import { notifyCustomName } from '../../io-interface/handlers/output-handlers';
 import { escapeHTML } from '../../util/escape-html';
+import { setBitrate } from '../../janus/handlers';
+import { socketIO } from '../socket-io';
+import { config } from '../../config/config';
+
+export const emitControllerBitrateLimit = (
+    socketId: string,
+    bitrateLimit: number
+) => {
+    socketIO
+        .to(socketId)
+        .emit('new_controller_bitrate_limit', { bitrateLimit });
+};
 
 const handleSetFeedId = (
     socket: SenderSocket,
-    data: null | { feedId?: string; customName?: string },
+    data: null | {
+        feedId?: string;
+        sessionId?: number;
+        videoroomId?: number;
+        customName?: string;
+    },
     fn: Function
 ) => {
     let success = true;
@@ -58,6 +75,36 @@ const handleSetFeedId = (
             throw new ValidationError('No feed id was provided');
         }
 
+        const sessionId = data.sessionId;
+        if (sessionId == null) {
+            console.log(
+                'Error: Got set_feed_id without a session id on slot ' + slot
+            );
+            throw new ValidationError('No session id was provided');
+        }
+        if (typeof sessionId !== 'number') {
+            console.log(
+                'Error: Got set_feed_id event with a non-numeric session id on slot ' +
+                    slot
+            );
+            throw new ValidationError('Session id has to be a number');
+        }
+
+        const videoroomId = data.videoroomId;
+        if (videoroomId == null) {
+            console.log(
+                'Error: Got set_feed_id event with no handle id on slot ' + slot
+            );
+            throw new ValidationError('No handle id was provided');
+        }
+        if (typeof videoroomId !== 'number') {
+            console.log(
+                'Error: Got set_feed_id event with a non-numeric handle id on slot ' +
+                    slot
+            );
+            throw new ValidationError('Handle id has to be a number');
+        }
+
         let unescapedCustomName = data.customName;
         if (unescapedCustomName != null) {
             unescapedCustomName = unescapedCustomName.trim();
@@ -86,8 +133,16 @@ const handleSetFeedId = (
         currentSlotState.feedActive = true;
         currentSlotState.feedId = feedId;
         currentSlotState.senderSocketId = socket.id;
+        currentSlotState.sessionId = sessionId;
+        currentSlotState.videoroomId = videoroomId;
 
         emitNewFeed(slot);
+
+        // Controller set bitrate before feed is sent
+        // => bitrate of the transmitted feed has to be adjusted
+        if (currentSlotState.controllerBitrateLimit !== config.janusBitrate) {
+            setBitrate(slot, currentSlotState.controllerBitrateLimit);
+        }
     } catch (e) {
         if (e instanceof ValidationError) {
             success = false;
@@ -99,6 +154,7 @@ const handleSetFeedId = (
 
     fn({ success, message });
 };
+
 const handleChangeName = (
     socket: SenderSocket,
     data: null | { newName?: string }
@@ -157,7 +213,81 @@ const handleChangeName = (
     }
 };
 
-const handleSenderDisconnect = (socket: SenderSocket, _: string) => {
+const handleSetBitrateLimit = async (
+    socket: SenderSocket,
+    data: null | { bitrateLimit?: number },
+    fn: Function
+) => {
+    let success = true;
+    let message = '';
+
+    try {
+        const slot = socket.cameraSlot;
+        const currentSlotState = cameraSlotState[slot];
+
+        if (!currentSlotState.feedActive) {
+            console.log(
+                `Error: Got set_bitrate_limit event on slot ${slot} which has no active feed`
+            );
+            throw new ValidationError(
+                'There is no camera feed being transmitted'
+            );
+        }
+
+        if (socket.id !== currentSlotState.senderSocketId) {
+            console.log(
+                `Error: Got set_bitrate_limit event on slot ${slot} from somebody who is not the sender`
+            );
+            throw new ValidationError('You are not the sender of this slot');
+        }
+
+        if (data == null) {
+            console.log(
+                `Error: Got set_bitrate_limit event on slot ${slot} without data`
+            );
+            throw new ValidationError('Got no data in the request');
+        }
+
+        let { bitrateLimit } = data;
+        if (bitrateLimit == null) {
+            console.log(
+                `Error: Got set_bitrate_limit event on slot ${slot} without bitrate limit`
+            );
+            throw new ValidationError('Got no bitrate limit in the request');
+        }
+        if (typeof bitrateLimit !== 'number') {
+            console.log(
+                `Error: Got set_bitrate_limit event on slot ${slot} with a non-numeric bitrate (${bitrateLimit})`
+            );
+            throw new ValidationError('The provided bitrate is not a number');
+        }
+
+        if (bitrateLimit < 0) {
+            bitrateLimit = 0;
+        }
+
+        const prevBitrate = currentSlotState.getCurrentBitrate();
+        currentSlotState.userBitrateLimit = bitrateLimit;
+        const newBitrate = currentSlotState.getCurrentBitrate();
+
+        message = 'Your bitrate limit was updated';
+
+        if (prevBitrate !== newBitrate) {
+            setBitrate(slot, newBitrate);
+        }
+    } catch (err) {
+        if (err instanceof ValidationError) {
+            success = false;
+            message = err.message;
+        } else {
+            throw err;
+        }
+    }
+
+    fn({ success, message });
+};
+
+const handleSenderDisconnect = (socket: SenderSocket) => {
     const slot = socket.cameraSlot;
     const currentSlotState = cameraSlotState[slot];
     if (
@@ -168,6 +298,9 @@ const handleSenderDisconnect = (socket: SenderSocket, _: string) => {
         currentSlotState.feedActive = false;
         currentSlotState.feedId = null;
         currentSlotState.senderSocketId = null;
+        currentSlotState.sessionId = null;
+        currentSlotState.videoroomId = null;
+        currentSlotState.userBitrateLimit = 0;
 
         emitRemoveFeed(slot);
     }
@@ -176,6 +309,7 @@ const handleSenderDisconnect = (socket: SenderSocket, _: string) => {
 const registerSenderHandlers = (socket: SenderSocket) => {
     socket.on('set_feed_id', handleSetFeedId.bind(null, socket));
     socket.on('change_name', handleChangeName.bind(null, socket));
+    socket.on('set_bitrate_limit', handleSetBitrateLimit.bind(null, socket));
     socket.on('disconnect', handleSenderDisconnect.bind(null, socket));
 };
 
