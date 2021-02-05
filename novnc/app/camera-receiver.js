@@ -360,6 +360,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var videoContainer = getVideoContainer(slot);
         if (videoContainer == null) {
             console.log('handleCommand videoContainer element is null');
+            return;
         }
         switch(command) {
             case 'set_geometry_relative_to_window':
