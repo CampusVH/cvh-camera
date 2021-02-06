@@ -263,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     error: function(error) {
                         Janus.error('WebRTC error:', error);
-                        setStatusMessage(`Janus WebRTC error: ${error.message} - Reload to try again`, STATUS_CODE.error);
+                        setStatusMessage(`Janus WebRTC error: ${error} - Reload to try again`, STATUS_CODE.error);
                     }
                 });
             }
