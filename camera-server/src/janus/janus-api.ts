@@ -17,7 +17,8 @@ interface RoomConfig {
 }
 
 export const api = axios.create({
-    baseURL: config.janusURL
+    baseURL: config.janusURL,
+    timeout: 2500
 });
 
 export const postRequest = <T extends { janus: JanusVerb }>(
@@ -34,7 +35,9 @@ export const sessionLongPoll = (
     maxExents = 10
 ) => {
     return api.get(`/${sessionId}?rid=${Date.now()}&maxev=${maxExents}`, {
-        cancelToken
+        cancelToken,
+        // Answer should come in 30000ms
+        timeout: 35000
     });
 };
 
