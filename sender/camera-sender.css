@@ -177,12 +177,30 @@ body {
 
 .bandwidth-form__input {
     flex: 2 0 50px;
+    padding: 4px;
     min-width: 0;
+    border: 2px solid transparent;
+    border-radius: 4px;
     margin-right: 4px;
+    outline: none;
+    box-shadow: none;
+}
+
+.bandwidth-form__input:focus {
+    border-color: var(--light-blue-3);
 }
 
 .bandwidth-form__button {
     flex: 1 0 0;
+    padding: 4px;
+    border-radius: 4px;
+    outline: none;
+    border: none;
+    background: var(--light-blue-2);
+}
+
+.bandwidth-form__button:hover {
+    background: var(--light-blue-3);
 }
 
 .main__controls {

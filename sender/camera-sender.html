@@ -58,10 +58,11 @@
             <section id="options-container" class="main__options hidden">
                 <button id="options-toggle" class="options__toggle">Advanced options</button>
                 <div id="options" class="options__body hidden">
+                    <p class="options__hint">Controller bitrate limit: <span id="controller-bitrate-limit">128</span> kbit/s</p>
+                    <p class="options__hint">Your bitrate limit (0 means no limit): <span id="user-bitrate-limit">0</span> kbit/s</p>
                     <form id="bandwidth-form">
-                        <p class="options__hint">While the camera is running, a bandwidth cap can be set here. 0 or negative means no cap.</p>
                         <div class="bandwidth-form__control">
-                            <input type="text" placeholder="Bitrate [in kbit/s]" id="bandwidth-input" class="bandwidth-form__input" />
+                            <input type="number" min="0" required placeholder="Bitrate [in kbit/s]" id="bandwidth-input" class="bandwidth-form__input" />
                             <button type="submit" id="bandwidth-submit" class="bandwidth-form__button" disabled>Change</button>
                         </div>
                     </form>

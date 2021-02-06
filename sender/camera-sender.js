@@ -74,6 +74,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         socket.on('disconnect', handleUnexpectedSocketDisconnect);
+        socket.on('new_controller_bitrate_limit', function(data) {
+            setControllerBitrateLimit(Math.floor(data.bitrateLimit / 1000));
+        });
     };
 
     function handleSenderInitResponse(data) {
@@ -105,6 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             showVideo();
             showOptions();
+            setControllerBitrateLimit(Math.floor(data.controllerBitrateLimit / 1000));
             if (customNameAllowed) {
                 var nameForm = document.getElementById('name-form');
                 nameForm.onsubmit = function(event) {
@@ -221,18 +225,18 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleBandwidthFormSubmit(event) {
         event.preventDefault();
         var bandwidthInput = document.getElementById('bandwidth-input');
-        var bitrateStr = bandwidthInput.value.trim();
-        if (bitrateStr !== '' && !isNaN(bitrateStr) ) {
-            var bitrate = parseInt(bitrateStr) * 1000;
-            if (bitrate < 0) {
-                bandwidth = 0;
-                Janus.log('Negative bitrate input set to 0 (unlimited)');
+        var bitrateLimit = parseInt(bandwidthInput.value);
+        bandwidthInput.value = '';
+        socket.emit(
+            'set_bitrate_limit',
+            { bitrateLimit: 1000 * bitrateLimit },
+            function(data) {
+                console.log('set_bitrate_limit response', data);
+                if (data.success) {
+                    setUserBitrateLimit(bitrateLimit);
+                }
             }
-            videoroomHandle.send({ message: { request: 'configure', bitrate }});
-            bandwidthInput.value = '';
-        } else {
-            alert('Invalid value for bitrate');
-        }
+        );
     }
 
     function handleMessage(msg, jsep) {
@@ -284,6 +288,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (statusCode === STATUS_CODE.error) {
             cleanup();
         }
+    }
+
+    function setUserBitrateLimit(bitrateLimit) {
+        document.getElementById('user-bitrate-limit').innerText = bitrateLimit;
+    }
+
+    function setControllerBitrateLimit(bitrateLimit) {
+        document.getElementById('controller-bitrate-limit').innerText = bitrateLimit;
     }
 
     function cleanup() {

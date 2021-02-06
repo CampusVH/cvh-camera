@@ -38,6 +38,7 @@ const handleSetFeedId = (
 ) => {
     let success = true;
     let message = '';
+    let controllerBitrateLimit = null;
 
     try {
         const slot = socket.cameraSlot;
@@ -138,6 +139,7 @@ const handleSetFeedId = (
 
         console.log('Setting feed id of slot ' + slot + ' to ' + feedId);
         message = 'Successfully set feed id - you are now using this slot';
+        controllerBitrateLimit = currentSlotState.controllerBitrateLimit;
 
         currentSlotState.feedActive = true;
         currentSlotState.feedId = feedId;
@@ -161,7 +163,15 @@ const handleSetFeedId = (
         }
     }
 
-    fn({ success, message });
+    const response: {
+        success: boolean;
+        message: string;
+        controllerBitrateLimit?: number;
+    } = { success, message };
+    if (controllerBitrateLimit != null) {
+        response.controllerBitrateLimit = controllerBitrateLimit;
+    }
+    fn(response);
 };
 
 const handleChangeName = (
@@ -274,6 +284,10 @@ const handleSetBitrateLimit = async (
         if (bitrateLimit < 0) {
             bitrateLimit = 0;
         }
+
+        console.log(
+            `Setting user bitrate limit of slot ${slot} to ${bitrateLimit}`
+        );
 
         const prevBitrate = currentSlotState.getCurrentBitrate();
         currentSlotState.userBitrateLimit = bitrateLimit;

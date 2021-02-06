@@ -7,9 +7,12 @@ export const setBitrate = async (
 ): Promise<boolean> => {
     const currentSlotState = cameraSlotState[slot];
     if (!currentSlotState.feedActive) {
-        console.log(`Tried to set bitrate for inactive slot ${slot}`);
+        console.log(
+            `Error: Tried to set bitrate of feed on slot ${slot} which has no active feed`
+        );
         return false;
     }
+    console.log(`Setting bitrate of feed on slot ${slot} to ${newBitrate}`);
     try {
         const response = await janusAPI.configureVideoroomBitrate(
             currentSlotState.sessionId!,
@@ -17,15 +20,17 @@ export const setBitrate = async (
             newBitrate
         );
         if (response.data?.janus === 'ack') {
-            console.log('Set new bitrate for slot ' + slot);
+            console.log(`Successfully set new bitrate of feed on slot ${slot}`);
             return true;
         } else {
-            console.log(`Error: Could not set new bitrate for slot ${slot}`);
+            console.log(
+                `Error: Could not set new bitrate of feed on slot ${slot}`
+            );
             return false;
         }
     } catch (err) {
         console.log(
-            `Error: An unknown error occurred while setting the bitrate of slot ${slot}:`,
+            `Error: An unknown error occurred while setting the bitrate of the feed on slot ${slot}:`,
             err
         );
         return false;
