@@ -69,6 +69,11 @@ Below is a description of the config file's properties:
 * `janusURL`: The url of the janus server. Defaults to `http://localhost:8088/janus`.
   Note that by default `/janus` has to be appended to the url.
 
+  **Important**: If you disabled http and only have https enabled for the Janus API, use the url that the
+  sender and noVNC site would use to connect to the Janus API. Example: `https://mydomain.com:8089/janus`.
+  Simply providing `https://localhost:8089/janus` would not work because the domain name
+  of the SSL certificate would not match.
+
 * `janusRoom`: The janus room which will be used. Make sure that the room is unique
   and not used for anything else, as the server will destroy it on startup to create
   a new room. Defaults to `1000`.
