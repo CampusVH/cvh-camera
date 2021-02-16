@@ -14,6 +14,7 @@ interface RoomConfig {
     secret?: string;
     pin?: string;
     description?: string;
+    admin_key?: string;
 }
 
 export const api = axios.create({

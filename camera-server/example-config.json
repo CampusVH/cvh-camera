@@ -6,5 +6,6 @@
   "janusRoom": 1000,
   "janusRoomSecret": "changeit",
   "janusRoomPin": "abc123",
-  "janusBitrate": 128000
+  "janusBitrate": 128000,
+  "janusAdminKey": "changeit"
 }

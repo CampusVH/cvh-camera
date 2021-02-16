@@ -88,6 +88,22 @@ Below is a description of the config file's properties:
 * `janusBitrate`: The default bitrate with which a camera feed is transmitted by Janus.
   Defaults to `128000`.
 
+* `janusAdminKey`: Admin key for the Janus API, which is required to create new rooms.
+  It is recommended to use this feature becuase it reduces attack possibilities.
+  Defaults to an empty string.
+
+  **Important**: This key needs to match the admin key in the config file for the
+  Janus videoroom plugin. In the used development environment it is located at
+  `/opt/janus/etc/janus/janus.plugin.videoroom.jcfg`. The admin key can be set
+  in the `general: { ... }` block of the janus config using the `admin_key` directive.
+
+  Example:
+  ```
+  general: {
+    admin_key = "MySafeAdminKey"
+  }
+  ```
+
 ## Stdin-Interface
 
 The camera server is controlled by PULT via its stdin. One could also implement the interface in any other program to manage the CVH-Camera.

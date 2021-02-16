@@ -128,7 +128,8 @@ class JanusRoom {
                 bitrate: config.janusBitrate,
                 publishers: config.cameraSlots,
                 pin: config.janusRoomPin,
-                secret: config.janusRoomSecret
+                secret: config.janusRoomSecret,
+                admin_key: config.janusAdminKey
             }
         );
 

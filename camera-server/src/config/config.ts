@@ -10,6 +10,7 @@ interface Config {
     janusRoomSecret: string;
     janusRoomPin: string;
     janusBitrate: number;
+    janusAdminKey: string;
 }
 
 // Required to access config with config[key]
@@ -44,7 +45,8 @@ const indexableConfig: IndexableConfig = {
     janusRoom: 1000,
     janusRoomSecret: 'default',
     janusRoomPin: '',
-    janusBitrate: 128000
+    janusBitrate: 128000,
+    janusAdminKey: ''
 };
 
 if (fileContent) {
