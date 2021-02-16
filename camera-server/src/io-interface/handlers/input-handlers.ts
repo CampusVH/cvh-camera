@@ -9,6 +9,7 @@ import {
     emitControllerBitrateLimit
 } from '../../socket-io/handlers/sender-handlers';
 import { setBitrate } from '../../janus/handlers';
+import { room } from '../../janus/janus-room';
 import { config } from '../../config/config';
 
 const visibilityCommands = ['hide', 'show'];
@@ -16,7 +17,7 @@ const geometryCommands = [
     'set_geometry_relative_to_window',
     'set_geometry_relative_to_canvas'
 ];
-const internalCommands = [
+const internalSlotCommands = [
     'activate_slot',
     'deactivate_slot',
     'refresh_token',
@@ -24,6 +25,7 @@ const internalCommands = [
     'remove_annotation',
     'set_bitrate_limit'
 ];
+const internalRoomCommands = ['edit_pin'];
 
 const setAnnotation = (slot: number, annotation: string) => {
     console.log(`Setting annotation of slot ${slot} to ${annotation}`);
@@ -33,7 +35,7 @@ const setAnnotation = (slot: number, annotation: string) => {
     }
 };
 
-const handleInternalCommand = (
+const handleInternalSlotCommand = (
     command: string,
     slot: number,
     params: string[]
@@ -155,7 +157,28 @@ const handleInternalCommand = (
             break;
         default:
             console.log(
-                'Error: handleInternalCommand got unknown command ' + command
+                'Error: handleInternalSlotCommand got unknown command ' +
+                    command
+            );
+            break;
+    }
+};
+
+const handleInternalRoomCommand = (command: string, params: string[]) => {
+    switch (command) {
+        case 'edit_pin':
+            const newPin = params[0];
+            if (newPin === null) {
+                console.log(
+                    'Tried to edit janus room pin without providing one'
+                );
+                return;
+            }
+            room.editPin(newPin);
+            break;
+        default:
+            console.log(
+                `Error: handleInternalRoomCommand got unknown command ${command}`
             );
             break;
     }
@@ -173,58 +196,61 @@ export const handleCommand = (line: string) => {
         return;
     }
 
-    const slotStr = params.shift();
-    if (slotStr == null) {
-        console.log('Error: Got no slot to apply the command on');
-        return;
-    }
-
-    const slot = parseInt(slotStr);
-    if (isNaN(slot)) {
-        console.log(
-            'Error: Could not parse slot ' + slotStr + ' to an integer'
-        );
-        return;
-    }
-    if (slot < 0 || slot > cameraSlotState.length - 1) {
-        console.log(
-            `Error: Got invalid slot number ${slot}. There are ${cameraSlotState.length} camera slots.`
-        );
-        return;
-    }
-
     console.log('command:', command);
-    console.log('slot:', slot);
     console.log('params:', params);
 
-    const currentCameraState = cameraSlotState[slot];
-
-    if (visibilityCommands.includes(command)) {
-        currentCameraState.visibility = {
-            command,
-            params
-        };
-        emitCommand = true;
-    } else if (geometryCommands.includes(command)) {
-        currentCameraState.geometry = {
-            command,
-            params
-        };
-        emitCommand = true;
-    } else if (internalCommands.includes(command)) {
-        handleInternalCommand(command, slot, params);
+    if (internalRoomCommands.includes(command)) {
+        handleInternalRoomCommand(command, params);
     } else {
-        console.log('Command "' + command + '" is not a valid command');
-        return;
-    }
+        const slotStr = params.shift();
+        if (slotStr == null) {
+            console.log('Error: Got no slot to apply the command on');
+            return;
+        }
 
-    console.log('new cameraState:', currentCameraState);
+        const slot = parseInt(slotStr);
+        if (isNaN(slot)) {
+            console.log(
+                'Error: Could not parse slot ' + slotStr + ' to an integer'
+            );
+            return;
+        }
+        if (slot < 0 || slot > cameraSlotState.length - 1) {
+            console.log(
+                `Error: Got invalid slot number ${slot}. There are ${cameraSlotState.length} camera slots.`
+            );
+            return;
+        }
 
-    if (currentCameraState.feedActive && emitCommand) {
-        socketIO.emit('command', {
-            slot,
-            command,
-            params
-        });
+        const currentCameraState = cameraSlotState[slot];
+
+        if (visibilityCommands.includes(command)) {
+            currentCameraState.visibility = {
+                command,
+                params
+            };
+            emitCommand = true;
+        } else if (geometryCommands.includes(command)) {
+            currentCameraState.geometry = {
+                command,
+                params
+            };
+            emitCommand = true;
+        } else if (internalSlotCommands.includes(command)) {
+            handleInternalSlotCommand(command, slot, params);
+        } else {
+            console.log('Command "' + command + '" is not a valid command');
+            return;
+        }
+
+        console.log('new cameraState:', currentCameraState);
+
+        if (currentCameraState.feedActive && emitCommand) {
+            socketIO.emit('command', {
+                slot,
+                command,
+                params
+            });
+        }
     }
 };

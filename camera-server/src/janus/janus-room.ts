@@ -149,6 +149,35 @@ class JanusRoom {
         }
     }
 
+    async editPin(newPin: string) {
+        console.log(`Changing janus room pin to ${newPin}`);
+        if (!this._sessionAlive) {
+            console.log("Error: Janus session timed out - can't send request");
+            return;
+        }
+        const { data } = await janusAPI.editRoomPin(
+            this.sessionId,
+            this.videoroomId,
+            config.janusRoom,
+            config.janusRoomSecret,
+            newPin
+        );
+        if (
+            data?.janus === 'success' &&
+            data.plugindata?.data?.videoroom === 'edited'
+        ) {
+            console.log('Changed janus room pin');
+        } else {
+            console.log(
+                `Error: Could not change janus room pin. Janus response: ${JSON.stringify(
+                    data,
+                    null,
+                    2
+                )}`
+            );
+        }
+    }
+
     async cleaup() {
         console.log(`Cleaning up janus room ${config.janusRoom}`);
         if (this._sessionAlive) {

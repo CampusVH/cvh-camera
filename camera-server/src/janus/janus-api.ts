@@ -113,3 +113,21 @@ export const destroyRoom = (
         }
     });
 };
+
+export const editRoomPin = (
+    sessionId: number,
+    videoroomId: number,
+    room: number,
+    secret: string,
+    newPin: string
+) => {
+    return postRequest(`/${sessionId}/${videoroomId}`, {
+        janus: 'message',
+        body: {
+            request: 'edit',
+            room,
+            secret,
+            new_pin: newPin
+        }
+    });
+};

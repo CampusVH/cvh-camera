@@ -114,9 +114,15 @@ For the syntax of the commands the following convention is used in this document
 
 * `<a | b>` is a parameter that is required and has to hold either the value `a` or `b`.
 
-* `[param]` is a parameter that is optional
+* `[param]` is a parameter that is optional.
 
 This is the list of the available commands:
+
+### Room Control Commands
+
+| Command                           | Description
+| --------------------------------- | -----------
+| `edit_pin`                        | Changes the pin of the Janus room. This pin is required to join the room as a viewer or sender. Note that this does not automatically kick the current participants of the Janus room. The noVNC pin also needs to be changed accordingly as it is expected to equal the Janus room pin. <br/><br/> **Usage**: `edit_pin <pin>`
 
 ### Slot Control Commands
 
