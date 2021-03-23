@@ -3,7 +3,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var janus = null;
     var videoroomHandle = null;
-    var sendResolution = 'stdres';
+    var sendResolution = '640x480';
+    var videoDeviceId = null;
 
     var startButton = document.getElementById('start');
     var stopButton = document.getElementById('stop');
@@ -136,7 +137,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-
             janus = new Janus({
                 server: server,
                 success: function() {
@@ -147,15 +147,15 @@ document.addEventListener('DOMContentLoaded', function() {
                             videoroomHandle = pluginHandle;
                             Janus.log('Plugin attached! (' + videoroomHandle.getPlugin() + ', id=' + videoroomHandle.getId() + ')');
 
-                            hideSpinner();
-                            showInputs();
-
                             startButton.onclick = function() {
                                 setStatusMessage('Connecting...');
                                 var resSelect = document.getElementById('res-select');
+                                var videoDeviceSelect = document.getElementById('video-device-select');
                                 startButton.setAttribute('disabled', '');
                                 resSelect.setAttribute('disabled', '');
+                                videoDeviceSelect.setAttribute('disabled', '');
                                 sendResolution = resSelect.value;
+                                videoDeviceId = videoDeviceSelect.value;
                                 Janus.log('sendResolution:', sendResolution);
                                 if (useUserPin) {
                                     var pinInputEl = document.getElementById('pin-input');
@@ -164,8 +164,29 @@ document.addEventListener('DOMContentLoaded', function() {
                                 }
                                 shareCamera(pin);
                             };
-                            startButton.removeAttribute('disabled');
-                            setStatusMessage('Connected - Click Start to transmit your camera feed');
+
+                            Janus.listDevices(function (devices) {
+                                var videoDeviceSelectEl = document.getElementById('video-device-select');
+                                var videoInputDevices = devices.filter(function(dev) {
+                                    return dev.kind === 'videoinput'
+                                });
+                                if (videoInputDevices.length === 0) {
+                                    setStatusMessage(`Error: There are no video input devices attached - Reload to try again`, STATUS_CODE.error);
+                                } else {
+                                    for (var dev of videoInputDevices) {
+                                        var optionEl = document.createElement('option');
+                                        optionEl.innerText = dev.label;
+                                        optionEl.value = dev.deviceId;
+                                        videoDeviceSelectEl.appendChild(optionEl);
+                                    }
+
+                                    hideSpinner();
+                                    showInputs();
+
+                                    startButton.removeAttribute('disabled');
+                                    setStatusMessage('Connected - Click Start to transmit your camera feed');
+                                }
+                            });
                         },
                         error: function(error) {
                             Janus.error('Error attaching plugin: ', error);
@@ -246,10 +267,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 Janus.log('Joined event:', msg);
                 feedId = msg.id;
                 Janus.log('Successfully joined room ' + msg['room'] + ' with ID ' + feedId);
+                var sendResolutionSplitStr = sendResolution.split('x');
+                var videoOffer = {
+                    width: parseInt(sendResolutionSplitStr[0]),
+                    height: parseInt(sendResolutionSplitStr[1]),
+                    deviceId: videoDeviceId
+                };
                 videoroomHandle.createOffer({
                     media: {
                         videoSend: true,
-                        video: sendResolution,
+                        video: videoOffer,
                         audioSend: false,
                         videoRecv: false
                     },

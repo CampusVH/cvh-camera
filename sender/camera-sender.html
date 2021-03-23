@@ -28,14 +28,20 @@
 
             <div id="inputs-container" class="main__inputs-container hidden">
                 <div class="form-control">
+                    <label class="form-control__label" for="video-device-select">Video Device</label>
+                    <select id="video-device-select" class="form-control__input">
+                    </select>
+                </div>
+
+                <div class="form-control">
                     <label class="form-control__label" for="res-select">Resolution</label>
                     <select id="res-select" class="form-control__input">
-                        <option value="lowres">320x240</option>
-                        <option value="lowres-16:9">320x180</option>
-                        <option value="stdres" selected>640x480</option>
-                        <option value="stdres-16:9">640x360</option>
-                        <option value="hires-4:3">960x720</option>
-                        <option value="hires-16:9">1280x720</option>
+                        <option value="320x240">320x240</option>
+                        <option value="320x180">320x180</option>
+                        <option value="640x480" selected>640x480</option>
+                        <option value="640x360">640x360</option>
+                        <option value="960x720">960x720</option>
+                        <option value="1280x720">1280x720</option>
                     </select>
                 </div>
 
