@@ -54,6 +54,8 @@ Once the code is compiled, the server can be started with `node server.js` in th
 The camera server can read a path to a config file from the `CONFIG_PATH` environment variable.
 This config file has to be in the json format and should have [this structure](./camera-server/example-config.json).
 
+Additionally each config key can be overwritten with an environment variable `CVH_CAMERA_CONFIG_<key>` (e.g. `CVH_CAMERA_CONFIG_cameraSlots` to overwrite the numbers of camera slots).
+
 Below is a description of the config file's properties:
 
 * `port`: The port on which the server will listen. Defaults to `5000`.

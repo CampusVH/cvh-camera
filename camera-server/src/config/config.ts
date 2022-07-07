@@ -84,6 +84,33 @@ if (fileContent) {
     }
 }
 
+const ENV_CONFIG_PREFIX = 'CVH_CAMERA_CONFIG_';
+Object.keys(process.env).forEach((envKey) => {
+    if (envKey.startsWith(ENV_CONFIG_PREFIX)) {
+        const configKey = envKey.slice(ENV_CONFIG_PREFIX.length);
+        if (indexableConfig.hasOwnProperty(configKey)) {
+            const expectedType = typeof indexableConfig[configKey];
+            if (expectedType === 'string') {
+                indexableConfig[configKey] = process.env[envKey]!;
+            } else if (expectedType === 'number') {
+                const envValue = process.env[envKey]!;
+                const num = parseInt(envValue);
+                if (!isNaN(num)) {
+                    indexableConfig[configKey] = num;
+                } else {
+                    console.log(
+                        `Error: Config key ${configKey} from environment could not be parsed to a number`
+                    );
+                }
+            }
+        } else {
+            console.log(
+                `Error: Unknown config key ${configKey} in environment`
+            );
+        }
+    }
+});
+
 const config = indexableConfig as Config;
 if (config.notifyPath && !path.isAbsolute(config.notifyPath) && configPath) {
     config.notifyPath = path.resolve(
