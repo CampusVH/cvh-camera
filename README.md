@@ -1,6 +1,6 @@
 # CVH-Camera
 
-The CVH-Camera project provides a way to share one or multiple camera views using the Janus WebRTC gateway. It is designed to be used with the PULT project available at [https://gitlab.cvh-server.de/pgerwinski/pult](https://gitlab.cvh-server.de/pgerwinski/pult).
+The CVH-Camera project provides a way to share one or multiple camera views using the Janus WebRTC gateway. It is designed to be used with the PULT project available at [https://gitlab.cvh-server.de/pgerwinski/pult](https://gitlab.cvh-server.de/pgerwinski/pult), or its successor Neopult available at [https://github.com/sdoering01/neopult](https://github.com/sdoering01/neopult).
 
 Note that the project and its documentation are still in development.
 
