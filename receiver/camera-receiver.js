@@ -94,8 +94,9 @@ function newRemoteFeed(id) {
 			var listen = {
 				request: 'join',
 				room,
-				ptype: 'listener',
-				feed: id
+				ptype: 'subscriber',
+				feed: id,
+                pin: '',
 			};
 			remoteFeedHandle.send({ message: listen });
 		},
@@ -149,7 +150,8 @@ function joinRoom() {
 	var register = {
 		request: 'join',
 		room,
-		ptype: 'publisher'
+		ptype: 'publisher',
+        pin: '',
 	};
 	videoroomHandle.send({ message: register });
 }
