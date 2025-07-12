@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var room = 1000;
 
     var passwordButton = document.getElementById('noVNC_password_button');
+    if (passwordButton == null) {
+        passwordButton = document.getElementById('noVNC_credentials_button');
+    }
     var passwordInput = document.getElementById('noVNC_password_input');
     var currentPassword = '';
     var pin = '';
